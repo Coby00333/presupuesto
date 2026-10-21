@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f1420">
+<meta name="description" content="Cuestionario de preparación de negociaciones válido para cualquier sector. Genera un documento JSON autodescriptivo listo para entregar a cualquier IA.">
+<link rel="manifest" href='data:application/json,{"name":"Cuestionario de negociacion universal","short_name":"Negociacion","display":"standalone","background_color":"#0f1420","theme_color":"#0f1420","start_url":"."}'>
+<title>Cuestionario — Preparación de una negociación (cualquier sector)</title>
+<style>
+  :root{
+    --bg:#0f1420; --card:#171e2e; --card2:#1d2740; --line:#2a3654;
+    --tx:#e8edf7; --tx2:#9fb0cc; --acc:#4f8cff; --acc2:#2f6ae0;
+    --ok:#3ecf8e; --warn:#ffb454;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+       background:var(--bg);color:var(--tx);line-height:1.45}
+  .topbar{position:sticky;top:0;z-index:50;background:#0b0f19ee;
+          border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+  .topbar-inner{max-width:960px;margin:0 auto;padding:12px 20px;
+          display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .topbar h1{font-size:1.02rem;margin:0;flex:1 1 auto}
+  .progress-wrap{display:flex;align-items:center;gap:10px;min-width:220px}
+  .progress-bar{flex:1;height:10px;background:var(--card2);border-radius:6px;overflow:hidden}
+  #bar{height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--ok));transition:width .25s}
+  #progress-text{font-size:.85rem;color:var(--tx2);white-space:nowrap}
+  .btn{border:0;border-radius:8px;padding:10px 18px;font-size:.95rem;cursor:pointer;
+       background:var(--card2);color:var(--tx)}
+  .btn.primary{background:var(--acc);color:#08101f;font-weight:600}
+  .btn.primary:hover{background:var(--acc2);color:#fff}
+  .btn:hover{filter:brightness(1.15)}
+  main{max-width:960px;margin:0 auto;padding:20px}
+  .intro{background:var(--card);border:1px solid var(--line);border-radius:12px;
+         padding:14px 18px;color:var(--tx2);font-size:.92rem;margin-bottom:22px}
+  .intro b{color:var(--tx)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:6px 22px 22px;margin-bottom:26px}
+  .card h2{font-size:1.05rem;color:var(--acc);border-bottom:1px solid var(--line);
+        padding-bottom:10px;margin:18px 0 6px}
+  .q{margin-top:22px}
+  .q-title{font-weight:600;margin-bottom:8px}
+  .q-title .qid{color:var(--warn);margin-right:6px}
+  .hint{font-size:.8rem;color:var(--tx2);margin:-4px 0 8px 0}
+  label.opt{display:flex;align-items:flex-start;gap:9px;padding:7px 10px;
+        border-radius:8px;cursor:pointer;margin:2px 0;font-size:.93rem}
+  label.opt:hover{background:var(--card2)}
+  input[type=radio],input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px;
+        flex:none;margin-top:2px}
+  input[type=text],input[type=number],input[type=date],input[type=email],select,textarea{
+        background:var(--card2);border:1px solid var(--line);color:var(--tx);
+        border-radius:8px;padding:8px 10px;font-size:.93rem;font-family:inherit;width:100%}
+  textarea{min-height:74px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
+  .inline{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .inline > div{display:flex;gap:8px;align-items:center}
+  .inline label{font-size:.88rem;color:var(--tx2);white-space:nowrap}
+  .inline input[type=number]{width:120px}
+  .inline input[type=text]{width:auto;flex:1;min-width:160px}
+  input[type=range]{width:220px;accent-color:var(--acc)}
+  output.rv{color:var(--warn);font-weight:600;min-width:38px;display:inline-block}
+  .row{display:flex;align-items:center;gap:10px;margin:6px 0}
+  .row > span{flex:0 0 300px;font-size:.9rem}
+  .row select{flex:1}
+  .other-wrap{display:flex;gap:8px;align-items:center;width:100%}
+  .other-wrap input.other-text{margin-top:2px}
+  .q.extra{margin-top:16px;padding:10px 12px;border-left:3px solid var(--line);
+        background:var(--card2);border-radius:0 8px 8px 0}
+  .q.extra .q-title{font-weight:500;color:var(--tx2)}
+  .subhead{font-size:.78rem;color:var(--tx2);margin:12px 0 2px;font-weight:600;
+        text-transform:uppercase;letter-spacing:.04em}
+  /* ===== menú hamburguesa, tooltips, temas, exprés, impresión (mejoras UX) ===== */
+  .menu-wrap{position:relative;display:inline-flex;align-items:center;flex:0 0 auto}
+  #btn-menu{display:inline-flex;align-items:center;gap:8px;padding:8px 14px}
+  #btn-menu .bars{width:16px;height:2px;background:currentColor;border-radius:2px;
+        position:relative;display:inline-block;flex:0 0 auto}
+  #btn-menu .bars::before,#btn-menu .bars::after{content:"";position:absolute;left:0;
+        width:16px;height:2px;background:currentColor;border-radius:2px}
+  #btn-menu .bars::before{top:-5px}
+  #btn-menu .bars::after{top:5px}
+  .menu-panel{position:absolute;right:0;top:calc(100% + 10px);z-index:90;
+        display:flex;flex-direction:column;gap:6px;min-width:280px;
+        background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:12px;box-shadow:0 16px 44px rgba(0,0,0,.45)}
+  .menu-panel[hidden]{display:none}
+  .menu-panel .btn,.menu-panel label.btn{display:flex;align-items:center;gap:8px;width:100%;
+        justify-content:flex-start;text-align:left;padding:9px 12px;font-size:.88rem}
+  .menu-panel label.btn select{margin-left:auto;flex:0 0 auto;min-width:112px;width:auto;
+        padding:6px 8px;font-size:.85rem}
+  .menu-panel input[type=file]{display:none}
+  .menu-sep{border-top:1px solid var(--line);margin:4px 0}
+  .tt{position:relative;display:inline-flex;align-items:center;justify-content:center;
+        width:16px;height:16px;margin-left:6px;border-radius:50%;border:1px solid var(--tx2);
+        color:var(--tx2);font-size:.66rem;cursor:help;vertical-align:middle;font-weight:700}
+  .tt:hover::after,.tt:focus::after{content:attr(data-tip);position:absolute;left:50%;
+        transform:translateX(-50%);bottom:26px;width:260px;background:#0a0e17;color:var(--tx);
+        border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.78rem;
+        line-height:1.35;font-weight:400;z-index:80;text-align:left}
+  body.light{--bg:#f2f5fa;--card:#ffffff;--card2:#e8edf6;--line:#c6d2e6;--tx:#1c2536;--tx2:#51617e}
+  body.big{font-size:1.12rem}
+  body.big .q-title{font-size:1.12rem}
+  .q[hidden]{display:none}
+  body.express #cuestionario .q:not([data-express]){display:none}
+  #avisos{display:none;border:1px solid var(--warn);background:rgba(255,180,84,.08);
+        border-radius:12px;padding:12px 18px;margin-bottom:22px}
+  #avisos.show{display:block}
+  #avisos h3{margin:0 0 6px;color:var(--warn);font-size:.95rem}
+  #avisos li{font-size:.86rem;color:var(--tx2);margin:4px 0}
+  .chip{display:inline-block;font-size:.68rem;border:1px solid var(--line);color:var(--tx2);
+        border-radius:20px;padding:1px 8px;margin-left:8px;vertical-align:middle;font-weight:400}
+  .chip.warn{border-color:var(--warn);color:var(--warn)}
+  .chip.ok{border-color:var(--ok);color:var(--ok)}
+  .btn.mini{padding:4px 10px;font-size:.72rem}
+  details.glosario{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:10px 18px;margin-bottom:26px}
+  details.glosario summary{cursor:pointer;color:var(--acc);font-weight:600;font-size:.92rem}
+  details.glosario dt{color:var(--warn);font-weight:600;margin-top:10px;font-size:.86rem}
+  details.glosario dd{margin:2px 0 0 0;color:var(--tx2);font-size:.84rem}
+  #stats-panel{font-size:.8rem;color:var(--tx2);margin-top:12px;border-top:1px dashed var(--line);
+        padding-top:10px}
+  .calc-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;
+        border-top:1px dashed var(--line);padding-top:8px}
+  .calc-row input[readonly]{background:#0a0e17;color:var(--ok);font-weight:600;min-width:280px}
+  #restored-note{display:none;max-width:960px;margin:0 auto;padding:8px 20px;font-size:.8rem;
+        color:var(--ok)}
+  #restored-note.show{display:block}
+  .post-card{border-left:4px solid var(--warn)}
+  @media print{
+    .topbar,#output,.menu-wrap,.tt{display:none!important}
+    body{background:#fff;color:#000}
+    .card{border:1px solid #999;background:#fff;color:#000;page-break-inside:avoid}
+    .q-title,.card h2{color:#000}
+    input,select,textarea{background:#fff;color:#000;border:1px solid #999}
+    .hint,label.opt,.q-title .qid{color:#333}
+    textarea{min-height:44px}
+    .chip,.btn.mini{display:none!important}
+  }
+  #output{display:none}
+  #output.show{display:block}
+  pre#json-out{background:#0a0e17;border:1px solid var(--line);border-radius:10px;
+        padding:16px;max-height:420px;overflow:auto;font-size:.8rem;white-space:pre-wrap;
+        word-break:break-word;color:#b9d4a3}
+  .out-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .note-ok{color:var(--ok);font-size:.9rem;display:none;margin-left:8px}
+  .note-ok.show{display:inline}
+  @media(max-width:640px){ .row > span{flex:1 1 100%} .row select{flex:1 1 100%} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1>Preparación de una negociación — válido para cualquier sector</h1>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div id="bar"></div></div>
+      <span id="progress-text">0 preguntas respondidas</span>
+    </div>
+    <button class="btn primary" id="btn-generate">Generar JSON</button>
+    <div class="menu-wrap">
+      <button class="btn" id="btn-menu" type="button" aria-expanded="false" aria-controls="menu-panel">
+        <span class="bars" aria-hidden="true"></span>Opciones
+      </button>
+      <div class="menu-panel" id="menu-panel" hidden>
+        <button class="btn" id="btn-express" type="button">Modo exprés (solo lo esencial)</button>
+        <button class="btn" id="btn-example" type="button">Ver ejemplo relleno</button>
+        <button class="btn" id="btn-print" type="button">Imprimir (también vacío)</button>
+        <div class="menu-sep"></div>
+        <button class="btn" id="btn-save-file" type="button">Guardar respuestas (archivo)</button>
+        <label class="btn">Cargar archivo<input type="file" id="file-load" accept=".json,.txt"></label>
+        <button class="btn" id="btn-share" type="button">Copiar enlace con respuestas</button>
+        <div class="menu-sep"></div>
+        <button class="btn" id="btn-theme" type="button">Tema claro</button>
+        <button class="btn" id="btn-font" type="button">Tamaño de letra A±</button>
+        <label class="btn">Moneda
+          <select id="sel-currency">
+            <option value="€">EUR €</option>
+            <option value="$">USD $</option>
+            <option value="£">GBP £</option>
+            <option value="MXN">MXN</option>
+            <option value="COP">COP</option>
+          </select>
+        </label>
+        <button class="btn" id="btn-lang" type="button">English</button>
+        <div class="menu-sep"></div>
+        <button class="btn" id="btn-reset" type="button">Reiniciar todo</button>
+      </div>
+    </div>
+  </div>
+</header>
+<p id="restored-note">Sesión anterior restaurada automáticamente. Para empezar de cero, usa «Reiniciar todo».</p>
+
+<main>
+  <p class="intro">
+    <b>Cómo funciona:</b> responde el cuestionario (lo que no sepas, déjalo en blanco; cuantas
+    más preguntas respondas, menos tendrá que suponer la IA). El formulario sirve para
+    <b>cualquier sector o gremio</b>: indica el tuyo en la pregunta 0.5 y qué se negocia en la
+    0.6, y la IA adaptará toda la terminología de la estrategia a tu oficio. Cada bloque
+    termina con un <b>campo libre opcional</b> para información no prevista. Al pulsar
+    <b>Generar JSON</b> se construye un documento autodescriptivo con cada pregunta y tu
+    respuesta, listo para entregar a una IA sin ningún contexto adicional: el propio JSON le
+    indica qué debe producir con él. Los bloques 9-11 incorporan estrategias avanzadas:
+    escenarios, tácticas difíciles con contramedidas, ofertas MESO, cierre/seguimiento y ética.
+  </p>
+
+  <form id="cuestionario">
+
+  <!-- ================= BLOQUE 0 ================= -->
+  <section class="card">
+    <h2>Bloque 0 — Datos de la negociación</h2>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.1"
+         data-q="0.1 ¿Quién escribe la estrategia? Nombre o alias de la parte propia en esta negociación (opcional)">
+      <div class="q-title"><span class="qid">0.1</span>Nombre o alias de la parte propia (opcional)</div>
+      <input type="text" data-name="Parte propia" placeholder="Ej.: Ana, Estudio Creo S.L., J. Martínez…">
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.2"
+         data-q="0.2 ¿Cuándo está prevista la conversación de negociación del precio?">
+      <div class="q-title"><span class="qid">0.2</span>Fecha prevista de la negociación</div>
+      <input type="date" data-name="Fecha prevista de la negociación">
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.3"
+         data-q="0.3 ¿Cómo se va a realizar la negociación?">
+      <div class="q-title"><span class="qid">0.3</span>Medio de la negociación</div>
+      <label class="opt"><input type="radio" name="q0_3" value="Presencial (reunión cara a cara)"> Presencial (reunión cara a cara)</label>
+      <label class="opt"><input type="radio" name="q0_3" value="Teléfono / videollamada"> Teléfono / videollamada</label>
+      <label class="opt"><input type="radio" name="q0_3" value="Escrita (WhatsApp / email, intercambio de presupuestos)"> Escrita (WhatsApp / email, intercambio de presupuestos)</label>
+      <label class="opt"><input type="radio" name="q0_3" value="Mixta (presupuesto escrito y luego reunión)"> Mixta (presupuesto escrito y luego reunión)</label>
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.4"
+         data-q="0.4 ¿Cuántas conversaciones ha habido ya sobre el precio? (madurez de la negociación: cuantas más rondas, menos margen queda para anclar de nuevo)">
+      <div class="q-title"><span class="qid">0.4</span>Conversaciones previas sobre el precio</div>
+      <select data-name="Conversaciones previas sobre el precio">
+        <option value="">Sin responder</option>
+        <option>Ninguna: esta será la primera conversación de precio</option>
+        <option>Una: el tema ya se ha tocado una vez</option>
+        <option>Varias: la conversación se repite y se alarga</option>
+      </select>
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.5" data-express="1"
+         data-q="0.5 ¿A qué sector o gremio pertenece quien responde? (la IA adaptará toda la terminología de la estrategia: tipo de trabajo, materiales, trámites, documentos y garantías de ese sector)">
+      <div class="q-title"><span class="qid">0.5</span>Sector o gremio <span style="color:var(--warn)">(pregunta clave)</span></div>
+      <input type="text" data-name="Sector o gremio" placeholder="Ej.: fontanería, carpintería, albañilería, peluquería, diseño, consultoría, abogacía, formación, comercio, hostelería, transporte, informática, salud…">
+      <p class="hint">Describe tu actividad como mejor te identifique; la estrategia entera usará el vocabulario de tu oficio.</p>
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.6" data-express="1"
+         data-q="0.6 ¿Qué se negocia exactamente en esta operación?">
+      <div class="q-title"><span class="qid">0.6</span>Objeto de la negociación</div>
+      <select data-name="Objeto de la negociación">
+        <option value="">Sin responder</option>
+        <option>El precio de un trabajo o servicio puntual (presupuesto)</option>
+        <option>Mis honorarios o tarifa profesional (por servicio, por hora, por proyecto)</option>
+        <option>El precio de un producto o un lote de productos</option>
+        <option>Las condiciones de un contrato o su renovación</option>
+        <option>El salario o la retribución (soy el candidato o la empresa)</option>
+        <option>Una compra importante que hago como cliente</option>
+      </select>
+    </div>
+
+    <div class="q" data-block="0. Datos de la negociación" data-id="0.7"
+         data-q="0.7 Momento y contexto elegidos para negociar (el día, la hora y el lugar influyen en el resultado: elegirlos a propósito es una ventaja)">
+      <div class="q-title"><span class="qid">0.7</span>Momento y lugar de la negociación</div>
+      <div class="row"><span>Mi mejor momento para una conversación difícil</span>
+        <select data-name="Mi mejor momento del día">
+          <option value="">Sin responder</option>
+          <option>Por la mañana (fresco y concentrado)</option>
+          <option>Mediodía</option>
+          <option>Por la tarde</option>
+          <option>Me da igual: cualquier hora</option>
+        </select>
+      </div>
+      <div class="row"><span>Territorio de la reunión</span>
+        <select data-name="Territorio de la reunión">
+          <option value="">Sin responder</option>
+          <option>Mi terreno (mi local, mi oficina, mi videollamada)</option>
+          <option>Su terreno (su casa, su empresa)</option>
+          <option>Territorio neutral (cafetería, espacio común)</option>
+          <option>No lo he decidido todavía</option>
+        </select>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="checkbox" name="q0_7" value="Puedo elegir yo día y hora"> Puedo elegir yo día y hora</label>
+        <label class="opt"><input type="checkbox" name="q0_7" value="Evitaré viernes tarde y finales de mes"> Evitaré viernes tarde y finales de mes</label>
+        <label class="opt"><input type="checkbox" name="q0_7" value="Negociaré sin prisas de tiempo (agenda libre)"> Negociaré sin prisas de tiempo (agenda libre)</label>
+        <label class="opt"><input type="checkbox" name="q0_7" value="Riesgo: llegaré cansado o con prisa"> Riesgo: llegaré cansado o con prisa</label>
+      </div>
+    </div>
+
+    <div class="q extra" data-block="0. Datos de la negociación" data-id="0.8"
+         data-q="0.8 ¿Algo más sobre los datos de la negociación que no se haya preguntado y la IA deba saber? (campo libre opcional)">
+      <div class="q-title"><span class="qid">0.8</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre datos de la negociación" placeholder="Cualquier detalle del estado actual de la negociación que no haya cabido arriba…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 1 ================= -->
+  <section class="card">
+    <h2>Bloque 1 — Contexto de la operación</h2>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.1"
+         data-q="1.1 Naturaleza del encargo: ¿es algo nuevo desde cero, una sustitución total, una mejora parcial o un trabajo puntual?">
+      <div class="q-title"><span class="qid">1.1</span>Naturaleza del encargo</div>
+      <label class="opt"><input type="radio" name="q1_1" value="Trabajo completo desde cero (algo nuevo)"> Trabajo completo desde cero (algo nuevo)</label>
+      <label class="opt"><input type="radio" name="q1_1" value="Sustitución o renovación total de algo existente"> Sustitución o renovación total de algo existente</label>
+      <label class="opt"><input type="radio" name="q1_1" value="Ampliación o mejora parcial de algo existente"> Ampliación o mejora parcial de algo existente</label>
+      <label class="opt"><input type="radio" name="q1_1" value="Trabajo puntual, reparación o consulta aislada"> Trabajo puntual, reparación o consulta aislada</label>
+      <label class="opt"><input type="radio" name="q1_1" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.2"
+         data-q="1.2 Magnitud del encargo: tamaño, volumen o unidades, expresado en la medida habitual de tu sector">
+      <div class="q-title"><span class="qid">1.2</span>Magnitud del encargo</div>
+      <input type="text" data-name="Magnitud del encargo" placeholder="Ej.: 95 m² con 3 dormitorios; 20 equipos; 5.000 palabras; 12 meses de servicio; 15 plazas…">
+      <p class="hint">Cuanto más concreto, mejor podrá la IA valorar el precio frente a referencias del sector.</p>
+    </div>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.3"
+         data-q="1.3 Ubicación del trabajo y facilidad de acceso a proveedores y profesionales">
+      <div class="q-title"><span class="qid">1.3</span>Ubicación</div>
+      <input type="text" data-name="Zona / ciudad" placeholder="Ciudad, barrio o zona (opcional)">
+      <div style="margin-top:8px">
+        <label class="opt"><input type="radio" name="q1_3" value="Acceso fácil: zona con proveedores y profesionales del sector disponibles"> Acceso fácil: proveedores y profesionales disponibles</label>
+        <label class="opt"><input type="radio" name="q1_3" value="Acceso difícil: zona aislada, pocos profesionales, logística complicada"> Acceso difícil: zona aislada, pocos profesionales, logística complicada</label>
+        <label class="opt"><input type="radio" name="q1_3" value="El trabajo es remoto / la ubicación no aplica"> El trabajo es remoto / la ubicación no aplica</label>
+        <label class="opt"><input type="radio" name="q1_3" value="No lo sé"> No lo sé</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.4"
+         data-q="1.4 Estado actual del encargo">
+      <div class="q-title"><span class="qid">1.4</span>Estado del encargo</div>
+      <label class="opt"><input type="radio" name="q1_4" value="Encargo definido y listo para ejecutar"> Encargo definido y listo para ejecutar</label>
+      <label class="opt"><input type="radio" name="q1_4" value="Trabajo ya empezado: falta terminarlo o completarlo"> Trabajo ya empezado: falta terminarlo o completarlo</label>
+      <label class="opt"><input type="radio" name="q1_4" value="Todo parado esperando este trabajo o servicio"> Todo parado esperando este trabajo o servicio</label>
+      <label class="opt"><input type="radio" name="q1_4" value="Fase inicial: aún sin definir del todo (fase de presupuesto)"> Fase inicial: aún sin definir del todo (fase de presupuesto)</label>
+      <label class="opt"><input type="radio" name="q1_4" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.5"
+         data-q="1.5 ¿Existe fecha límite de finalización y qué ocurre si no se cumple?">
+      <div class="q-title"><span class="qid">1.5</span>Plazos del encargo</div>
+      <div class="inline">
+        <div><label>Fecha límite</label><input type="date" data-name="Fecha límite de finalización"></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="checkbox" name="q1_5" value="No hay fecha límite definida"> No hay fecha límite definida</label>
+        <label class="opt"><input type="checkbox" name="q1_5" value="Hay penalización económica por retraso"> Hay penalización económica por retraso</label>
+        <label class="opt"><input type="checkbox" name="q1_5" value="Un retraso detiene todo en cadena (otras tareas o proveedores esperan)"> Un retraso detiene todo en cadena (otras tareas o proveedores esperan)</label>
+        <label class="opt"><input type="checkbox" name="q1_5" value="Fecha ya comprometida con terceros (entrega, mudanza, evento, campaña…)"> Fecha ya comprometida con terceros (entrega, mudanza, evento, campaña…)</label>
+        <label class="opt"><input type="checkbox" name="q1_5" value="Nada grave si se retrasa"> Nada grave si se retrasa</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="1. Contexto de la operación" data-id="1.6"
+         data-q="1.6 Requisitos especiales del encargo (afectan al precio y a los argumentos)">
+      <div class="q-title"><span class="qid">1.6</span>Requisitos especiales del encargo</div>
+      <p class="hint">Marca todo lo que aplique (afecta al precio y a los argumentos)</p>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Plazo muy ajustado o urgencia real"> Plazo muy ajustado o urgencia real</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Materiales, productos o herramientas especiales"> Materiales, productos o herramientas especiales</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Certificaciones, homologaciones o normativa específica del sector"> Certificaciones, homologaciones o normativa específica del sector</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Confidencialidad (acuerdo de no divulgación, discreción)"> Confidencialidad (acuerdo de no divulgación, discreción)</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Coordinación con otros proveedores o gremios"> Coordinación con otros proveedores o gremios</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Trabajo fuera del horario o del lugar habitual"> Trabajo fuera del horario o del lugar habitual</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Ningún requisito especial"> Ningún requisito especial</label>
+      <label class="opt"><input type="checkbox" name="q1_6" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q extra" data-block="1. Contexto de la operación" data-id="1.7"
+         data-q="1.7 ¿Algo más sobre el contexto de la operación que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">1.7</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre el contexto de la operación" placeholder="Detalles del encargo, particularidades del caso, historial…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 2 ================= -->
+  <section class="card">
+    <h2>Bloque 2 — Mi situación</h2>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.1" data-express="1"
+         data-q="2.1 ¿Cuál es mi rol en esta negociación: quien vende o quien compra? (pregunta clave: define desde qué lado se redacta toda la estrategia)">
+      <div class="q-title"><span class="qid">2.1</span>Rol en la negociación <span style="color:var(--warn)">(pregunta clave)</span></div>
+      <label class="opt"><input type="radio" name="q2_1" value="Soy quien vende (profesional, autónomo o empresa): quiero cobrar más"> Soy quien vende (profesional/empresa): quiero cobrar más</label>
+      <label class="opt"><input type="radio" name="q2_1" value="Soy quien compra (cliente particular o empresa): quiero pagar menos"> Soy quien compra (cliente): quiero pagar menos</label>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.2" data-hideon="Salario|compra"
+         data-q="2.2 ¿Con cuántas personas se ejecuta el trabajo y cuántos días reales se estiman?">
+      <div class="q-title"><span class="qid">2.2</span>Equipo y duración estimada</div>
+      <div class="inline">
+        <div><label>Días de trabajo</label><input type="number" data-name="Días de trabajo estimados" min="0" placeholder="8"></div>
+        <div>
+          <select data-name="Tamaño del equipo">
+            <option value="">Equipo…</option>
+            <option>Trabajo solo (cuenta propia)</option>
+            <option>Yo + 1 ayudante</option>
+            <option>Equipo de 3 a 5 personas</option>
+            <option>Más de 5 personas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.3" data-express="1"
+         data-q="2.3 Nivel actual de carga de trabajo de la parte propia (afecta directamente al poder de negociación: a menor necesidad de cerrar, más poder)">
+      <div class="q-title"><span class="qid">2.3</span>Carga de trabajo actual</div>
+      <label class="opt"><input type="radio" name="q2_3" value="Saturado: tengo que rechazar encargos (gran poder de negociación)"> Saturado: tengo que rechazar encargos (gran poder)</label>
+      <label class="opt"><input type="radio" name="q2_3" value="Carga normal: hay trabajo pero cabe otro más"> Carga normal: hay trabajo pero cabe otro más</label>
+      <label class="opt"><input type="radio" name="q2_3" value="Poca carga: necesito llenar la agenda (poder de negociación bajo)"> Poca carga: necesito llenar la agenda (poder bajo)</label>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.4" data-express="1" data-hideon="Salario|compra"
+         data-q="2.4 Costes reales del trabajo: materiales o productos, horas totales, precio/hora, permisos y trámites, otros costes, margen y fiabilidad del cálculo (sin costes reales no hay punto de ruptura fiable)">
+      <div class="q-title"><span class="qid">2.4</span>Costes y margen</div>
+      <div class="inline">
+        <div><label>Coste materiales/productos</label><input type="number" data-name="Coste de materiales o productos estimado" data-unit="€" min="0" placeholder="3500"></div>
+        <div><label>Precio/hora</label><input type="number" data-name="Precio por hora o jornada" data-unit="€" min="0" placeholder="30"></div>
+        <div><label>Horas totales</label><input type="number" data-name="Horas totales de trabajo estimadas" data-unit="h" min="0" placeholder="64"></div>
+      </div>
+      <div class="inline" style="margin-top:8px">
+        <div><label>Permisos y trámites</label><input type="number" data-name="Coste de permisos, licencias y trámites" data-unit="€" min="0" placeholder="250"></div>
+        <div><label>Otros costes</label><input type="number" data-name="Otros costes (desplazamiento, ayudante, subcontratación, alquiler…)" data-unit="€" min="0" placeholder="200"></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="radio" name="q2_4" value="Margen bajo (menos del 15%)"> Margen bajo (menos del 15%)</label>
+        <label class="opt"><input type="radio" name="q2_4" value="Margen medio (15% a 30%)"> Margen medio (15% a 30%)</label>
+        <label class="opt"><input type="radio" name="q2_4" value="Margen alto (más del 30%)"> Margen alto (más del 30%)</label>
+        <label class="opt"><input type="radio" name="q2_4" value="No tengo calculado el margen"> No tengo calculado el margen</label>
+      </div>
+      <div class="row" style="margin-top:8px"><span>Fiabilidad de estos costes</span>
+        <select data-name="Fiabilidad del cálculo de costes">
+          <option value="">Sin responder</option>
+          <option>Calculados con presupuestos reales de proveedores</option>
+          <option>Estimados por experiencia en trabajos parecidos</option>
+          <option>A ojo, sin desglose</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.5"
+         data-q="2.5 Certificaciones y garantías profesionales de la parte propia">
+      <div class="q-title"><span class="qid">2.5</span>Certificaciones y garantías</div>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Certificación, título o carné específico de mi sector"> Certificación, título o carné específico de mi sector</label>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Formación adicional (cursos, carnés)"> Formación adicional (cursos, carnés)</label>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Empresa constituida con garantía por escrito"> Empresa constituida con garantía por escrito</label>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Seguro de responsabilidad civil"> Seguro de responsabilidad civil</label>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Ninguna certificación destacable"> Ninguna certificación destacable</label>
+      <label class="opt"><input type="checkbox" name="q2_5" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.6"
+         data-q="2.6 Referencias y trabajos anteriores que pueden mostrarse como evidencia">
+      <div class="q-title"><span class="qid">2.6</span>Referencias y evidencias disponibles</div>
+      <label class="opt"><input type="checkbox" name="q2_6" value="Fotos de trabajos anteriores"> Fotos de trabajos anteriores</label>
+      <label class="opt"><input type="checkbox" name="q2_6" value="Reseñas positivas en internet (Google, etc.)"> Reseñas positivas en internet (Google, etc.)</label>
+      <label class="opt"><input type="checkbox" name="q2_6" value="Clientes anteriores que recomiendan"> Clientes anteriores que recomiendan</label>
+      <label class="opt"><input type="checkbox" name="q2_6" value="Portafolio o proyectos anteriores documentados"> Portafolio o proyectos anteriores documentados</label>
+      <label class="opt"><input type="checkbox" name="q2_6" value="No dispongo de referencias mostrables"> No dispongo de referencias mostrables</label>
+      <div style="margin-top:6px">
+        <textarea data-name="Detalle de referencias" placeholder="Describe brevemente los trabajos similares más relevantes (opcional)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.7"
+         data-q="2.7 Preparación emocional: confianza y nerviosismo ante la reunión (0-10) y principales miedos (para preparar técnicas de control: pausa, reformulación neutra y distanciamiento)">
+      <div class="q-title"><span class="qid">2.7</span>Preparación emocional</div>
+      <div class="inline">
+        <div><label>Confianza (0-10)</label><input type="range" min="0" max="10" value="5" data-name="Confianza propia (0-10)"><output class="rv">5</output></div>
+        <div><label>Nerviosismo (0-10)</label><input type="range" min="0" max="10" value="5" data-name="Nerviosismo ante la reunión (0-10)"><output class="rv">5</output></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="checkbox" name="q2_7" value="Miedo a perder el trabajo por precio"> Miedo a perder el trabajo por precio</label>
+        <label class="opt"><input type="checkbox" name="q2_7" value="Miedo a quedar mal o a parecer caro"> Miedo a quedar mal o a parecer caro</label>
+        <label class="opt"><input type="checkbox" name="q2_7" value="Tendencia a ceder por evitar el conflicto"> Tendencia a ceder por evitar el conflicto</label>
+        <label class="opt"><input type="checkbox" name="q2_7" value="Me indigno con facilidad si me presionan o descalifican"> Me indigno con facilidad si me presionan</label>
+        <label class="opt"><input type="checkbox" name="q2_7" value="Ansiedad por el silencio (tiendo a rellenarlo cediendo)"> Ansiedad por el silencio (tiendo a rellenarlo cediendo)</label>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Mi disparador emocional conocido" placeholder="Ej.: «cuando dice que mi precio es una barbaridad me pongo a la defensiva y me justifico sin parar»; «cuando lo compara con su primo, me indigno»…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.8"
+         data-q="2.8 Mi propio estilo de comunicación habitual (la estrategia debe ajustar mi estilo natural al estilo del interlocutor detectado en 5.3)">
+      <div class="q-title"><span class="qid">2.8</span>Mi estilo de comunicación</div>
+      <label class="opt"><input type="radio" name="q2_8" value="Relacionador: busco el consenso y el buen trato, evito el choque"> Relacionador: busco consenso y buen trato</label>
+      <label class="opt"><input type="radio" name="q2_8" value="Persuasivo: extrovertido y entusiasta, me dejo llevar por la impresión"> Persuasivo: extrovertido, me dejo llevar por impresiones</label>
+      <label class="opt"><input type="radio" name="q2_8" value="Analítico: quiero datos, desgloses y calidad comprobable"> Analítico: datos, desgloses y calidad</label>
+      <label class="opt"><input type="radio" name="q2_8" value="Directivo: directo y autoritario, decido rápido, resultados sobre relación"> Directivo: directo, decido rápido</label>
+      <label class="opt"><input type="radio" name="q2_8" value="No me identifico con ninguno claro"> No me identifico con ninguno claro</label>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.9"
+         data-q="2.9 ¿Voy solo o acompañado a la negociación? Reparto de roles del equipo propio (preparar los roles evita que dos personas de mi lado se contradigan delante del otro)">
+      <div class="q-title"><span class="qid">2.9</span>Equipo propio en la reunión</div>
+      <label class="opt"><input type="checkbox" name="q2_9" value="Voy solo a la reunión"> Voy solo a la reunión</label>
+      <label class="opt"><input type="checkbox" name="q2_9" value="Acompañante que toma notas y guarda silencio"> Acompañante que toma notas y guarda silencio</label>
+      <label class="opt"><input type="checkbox" name="q2_9" value="Compañero que hace de «duro» mientras yo hago de «amable»"> Compañero que hace de «duro» mientras yo hago de «amable»</label>
+      <label class="opt"><input type="checkbox" name="q2_9" value="Autoridad técnica convocable (perito, jefe de proyecto) si hace falta"> Autoridad técnica convocable si hace falta</label>
+      <label class="opt"><input type="checkbox" name="q2_9" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.10"
+         data-q="2.10 Ensayo previo (role-play): ¿con quién puedo simular esta negociación y qué objeción quiero que me lancen en el ensayo para practicarla?">
+      <div class="q-title"><span class="qid">2.10</span>Ensayo previo (role-play)</div>
+      <input type="text" data-name="Persona con la que ensayar" placeholder="Ej.: mi socio, un compañero del gremio, mi pareja…">
+      <div style="margin-top:6px">
+        <textarea data-name="Objeción que quiero ensayar" placeholder="Ej.: quiero que me suelten diez veces «tengo otra oferta a mitad de precio» hasta que responda sin titubear…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="2. Mi situación" data-id="2.11"
+         data-q="2.11 Sesgos propios declarados (la IA debe preparar un antídoto concreto para cada sesgo marcado)">
+      <div class="q-title"><span class="qid">2.11</span>Mis sesgos conocidos</div>
+      <label class="opt"><input type="checkbox" name="q2_11" value="Anclaje: el primer número que oigo me condiciona"> Anclaje: me condiciona el primer número que oigo</label>
+      <label class="opt"><input type="checkbox" name="q2_11" value="Coste hundido: «ya llevo reuniones invertidas, no puedo irme con las manos vacías»"> Coste hundido: «ya llevo reuniones invertidas…»</label>
+      <label class="opt"><input type="checkbox" name="q2_11" value="Exceso de confianza: tiendo a sobreestimar mis probabilidades"> Exceso de confianza</label>
+      <label class="opt"><input type="checkbox" name="q2_11" value="Necesidad de gustar: cedo para que el otro salga contento de la conversación"> Necesidad de gustar: cedo para que el otro salga contento</label>
+      <label class="opt"><input type="checkbox" name="q2_11" value="No me identifico con ninguno"> No me identifico con ninguno</label>
+    </div>
+
+    <div class="q extra" data-block="2. Mi situación" data-id="2.12"
+         data-q="2.12 ¿Algo más sobre tu situación que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">2.12</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre mi situación" placeholder="Circunstancias personales, económicas o de agenda que afecten a tu posición…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 3 ================= -->
+  <section class="card">
+    <h2>Bloque 3 — Objetivos y límites</h2>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.1" data-express="1"
+         data-q="3.1 ¿Cuál es el objetivo IDEAL de precio para esta operación? (el mejor resultado creíble)">
+      <div class="q-title"><span class="qid">3.1</span>Objetivo IDEAL de precio</div>
+      <div class="inline">
+        <div><label>Precio</label><input type="number" data-name="Objetivo ideal" data-unit="€" min="0" placeholder="6500"></div>
+      </div>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.2" data-express="1"
+         data-q="3.2 ¿Cuál es el objetivo REALISTA de precio? (el que se espera conseguir en condiciones normales)">
+      <div class="q-title"><span class="qid">3.2</span>Objetivo REALISTA de precio</div>
+      <div class="inline">
+        <div><label>Precio</label><input type="number" data-name="Objetivo realista" data-unit="€" min="0" placeholder="5500"></div>
+      </div>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.3" data-express="1"
+         data-q="3.3 ¿Cuál es el objetivo MÍNIMO de precio? (por debajo de este resultado se prefiere no hacer el trabajo; regla del método Harvard: el objetivo mínimo nunca debe ser peor que tu MAPAN del bloque 4)">
+      <div class="q-title"><span class="qid">3.3</span>Objetivo MÍNIMO de precio</div>
+      <div class="inline">
+        <div><label>Precio</label><input type="number" data-name="Objetivo mínimo" data-unit="€" min="0" placeholder="4800"></div>
+      </div>
+      <p class="hint">Regla del curso: el objetivo mínimo nunca debe ser peor que tu MAPAN (bloque 4).</p>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.4" data-express="1"
+         data-q="3.4 ¿Cuál es el punto de ruptura / precio de reserva exacto y por qué? (costes directos + horas + margen mínimo)">
+      <div class="q-title"><span class="qid">3.4</span>Punto de ruptura (precio de reserva)</div>
+      <div class="inline">
+        <div><label>Precio mínimo irrenunciable</label><input type="number" data-name="Punto de ruptura" data-unit="€" min="0" placeholder="4200"></div>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Justificación del punto de ruptura" placeholder="¿Por qué ese es tu límite? (desglose de costes, alternativa, margen mínimo…)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.5"
+         data-q="3.5 Líneas rojas: condiciones que nunca se aceptarían además del precio">
+      <div class="q-title"><span class="qid">3.5</span>Líneas rojas (no negociables)</div>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No aceptar pagos a largo plazo (60/90 días)"> No aceptar pagos a largo plazo (60/90 días)</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No trabajar sin los permisos o la documentación legal en regla"> No trabajar sin los permisos o la documentación legal en regla</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No asumir errores de otros gremios"> No asumir errores de otros gremios</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No empezar sin pago anticipado"> No empezar sin pago anticipado</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No dar garantía ilimitada en el tiempo"> No dar garantía ilimitada en el tiempo</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="No aceptar cláusulas de penalización desproporcionadas"> No aceptar cláusulas de penalización desproporcionadas</label>
+      <label class="opt"><input type="checkbox" name="q3_5" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.6"
+         data-q="3.6 Priorización de intereses propios: qué es imprescindible, qué es negociable y qué es secundario (se podría ceder a bajo coste pero con alto valor para la otra parte)">
+      <div class="q-title"><span class="qid">3.6</span>Priorización de intereses</div>
+      <textarea data-name="Imprescindible (no se cede)" placeholder="Imprescindible: ej. 40% de pago anticipado; acabar antes del 30 de junio…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Negociable (se cede a cambio de algo)" placeholder="Negociable: ej. plazos de ejecución, forma de pago…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Secundario (cedería casi gratis pero puede valer mucho al otro)" placeholder="Secundario: ej. pequeños extras de bajo coste, asesoría incluida, soporte posterior…"></textarea>
+    </div>
+
+    <div class="q" data-block="3. Objetivos y límites" data-id="3.7"
+         data-q="3.7 Mis peticiones: lo que YO pediré en la negociación, además del precio (la preparación no debe contener solo concesiones propias: también exigencias de apertura para el intercambio)">
+      <div class="q-title"><span class="qid">3.7</span>Mis peticiones (lo que exigiré)</div>
+      <textarea data-name="Mis peticiones" placeholder="Ej.: pago del 40% antes de empezar; firma del presupuesto esta semana; acceso y luz desde el día 1; el material lo compra él; poder usar fotos del trabajo como muestra…"></textarea>
+    </div>
+
+    <div class="q extra" data-block="3. Objetivos y límites" data-id="3.8"
+         data-q="3.8 ¿Algo más sobre objetivos y límites que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">3.8</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre objetivos y límites" placeholder="Otra condición del acuerdo que te importe y no aparezca arriba…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 4 ================= -->
+  <section class="card">
+    <h2>Bloque 4 — MAPAN / BATNA</h2>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.1" data-express="1"
+         data-q="4.1 Si no se cierra este trabajo, ¿cuál es la mejor alternativa real (MAPAN/BATNA) de la parte propia?">
+      <div class="q-title"><span class="qid">4.1</span>Mi mejor alternativa si no cierro (MAPAN/BATNA)</div>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Otros encargos en cartera con fecha cerrada"> Otros encargos en cartera con fecha cerrada</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Clientes habituales o contratos recurrentes"> Clientes habituales o contratos recurrentes</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Encargos pequeños de agenda rápida"> Encargos pequeños de agenda rápida</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Usar el tiempo en formación o descanso"> Usar el tiempo en formación o descanso</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Esperar a un trabajo mejor remunerado"> Esperar a un trabajo mejor remunerado</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="No tengo ninguna alternativa clara"> No tengo ninguna alternativa clara</label>
+      <label class="opt"><input type="checkbox" name="q4_1" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.2" data-express="1"
+         data-q="4.2 ¿Cuánto vale económicamente esa alternativa? (ingreso esperado del tiempo si no se hace este trabajo)">
+      <div class="q-title"><span class="qid">4.2</span>Valor de mi alternativa</div>
+      <div class="inline">
+        <div><label>Ingresos esperados</label><input type="number" data-name="Valor de la alternativa" data-unit="€" min="0" placeholder="4000"></div>
+      </div>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.3"
+         data-q="4.3 ¿Qué alternativas tiene la otra parte si no cierra conmigo? (su MAPAN/BATNA estimado)">
+      <div class="q-title"><span class="qid">4.3</span>Alternativas de la otra parte</div>
+      <label class="opt"><input type="checkbox" name="q4_3" value="Hay muchos profesionales de mi sector disponibles en la zona"> Hay muchos profesionales de mi sector disponibles</label>
+      <label class="opt"><input type="checkbox" name="q4_3" value="Los profesionales del sector están saturados o son caros"> Los profesionales del sector están saturados o son caros</label>
+      <label class="opt"><input type="checkbox" name="q4_3" value="Ya ha pedido otras ofertas o presupuestos"> Ya ha pedido otras ofertas o presupuestos</label>
+      <label class="opt"><input type="checkbox" name="q4_3" value="Podría hacerlo por su cuenta o con un conocido no profesional"> Podría hacerlo por su cuenta o con un conocido no profesional</label>
+      <label class="opt"><input type="checkbox" name="q4_3" value="Puede retrasar el asunto indefinidamente"> Puede retrasar el asunto indefinidamente</label>
+      <label class="opt"><input type="checkbox" name="q4_3" value="No lo sé"> No lo sé</label>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.4"
+         data-q="4.4 ¿Cómo de urgente es para la otra parte cerrar este trabajo ahora mismo? (0 = sin ninguna prisa, 10 = urgencia extrema)">
+      <div class="q-title"><span class="qid">4.4</span>Urgencia de la otra parte</div>
+      <div class="inline">
+        <input type="range" min="0" max="10" value="5" data-name="Urgencia de la otra parte (0-10)">
+        <output class="rv">5</output>
+      </div>
+      <p class="hint">Motivo de la urgencia, si lo conoces:</p>
+      <label class="opt"><input type="checkbox" name="q4_4" value="El asunto está parado esperando este trabajo o servicio"> El asunto está parado esperando este trabajo o servicio</label>
+      <label class="opt"><input type="checkbox" name="q4_4" value="Fecha de entrega o evento comprometida"> Fecha de entrega o evento comprometida</label>
+      <label class="opt"><input type="checkbox" name="q4_4" value="Subvención o ayuda con fecha límite"> Subvención o ayuda con fecha límite</label>
+      <label class="opt"><input type="checkbox" name="q4_4" value="Sin urgencia aparente"> Sin urgencia aparente</label>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.5" data-express="1"
+         data-q="4.5 ¿Cómo de necesaria es para la parte propia cerrar este trabajo? (0 = puedo dejarlo pasar sin problema, 10 = lo necesito cerrar sí o sí)">
+      <div class="q-title"><span class="qid">4.5</span>Mi necesidad de cerrar (0-10)</div>
+      <div class="inline">
+        <input type="range" min="0" max="10" value="5" data-name="Necesidad propia de cerrar (0-10)">
+        <output class="rv">5</output>
+      </div>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.6"
+         data-q="4.6 ¿Qué se puede hacer ANTES de la reunión para fortalecer la propia alternativa? (un MAPAN fuerte desplaza la ZOPA a favor propio; fortalecerlo es fuente de poder)">
+      <div class="q-title"><span class="qid">4.6</span>Fortalecer mi MAPAN antes de la reunión</div>
+      <label class="opt"><input type="checkbox" name="q4_6" value="Cerrar o apartar otro encargo para esas fechas"> Cerrar o apartar otro encargo para esas fechas</label>
+      <label class="opt"><input type="checkbox" name="q4_6" value="Pedir a conocidos que me avisen de trabajos de esas semanas"> Pedir a conocidos que me avisen de trabajos de esas semanas</label>
+      <label class="opt"><input type="checkbox" name="q4_6" value="Confirmar por escrito el encargo en cartera"> Confirmar por escrito el encargo en cartera</label>
+      <label class="opt"><input type="checkbox" name="q4_6" value="Rellenar la agenda con encargos pequeños"> Rellenar la agenda con encargos pequeños</label>
+      <label class="opt"><input type="checkbox" name="q4_6" value="No hay nada que pueda hacer en este plazo"> No hay nada que pueda hacer en este plazo</label>
+      <div style="margin-top:6px">
+        <textarea data-name="Otras acciones para reforzar la posición" placeholder="Otras acciones concretas para llegar a la reunión con alternativa (opcional)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.7"
+         data-q="4.7 La urgencia o presión de la otra parte, ¿es real o podría ser una táctica de presión (urgencia inducida)?">
+      <div class="q-title"><span class="qid">4.7</span>¿Urgencia real o táctica?</div>
+      <label class="opt"><input type="radio" name="q4_7" value="Urgencia real y comprobable (asunto parado, fecha comprometida)"> Urgencia real y comprobable (asunto parado, fecha comprometida)</label>
+      <label class="opt"><input type="radio" name="q4_7" value="Podría ser una táctica para presionarme («me lo han ofrecido por menos, decide ya»)"> Podría ser una táctica para presionarme</label>
+      <label class="opt"><input type="radio" name="q4_7" value="No lo sé"> No lo sé</label>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.8"
+         data-q="4.8 Coste del no acuerdo para AMBOS lados: qué pierde cada parte si no hay trato (el combustible real del análisis de poder)">
+      <div class="q-title"><span class="qid">4.8</span>Coste del no acuerdo</div>
+      <textarea data-name="Lo que pierdo yo si no hay acuerdo" placeholder="Ej.: dos semanas de agenda ya reservadas, el pico de trabajo de noviembre, la recomendación de ese cliente…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Lo que pierde la otra parte si no hay acuerdo" placeholder="Ej.: no encuentra otro profesional libre antes del cierre, pierde la subvención, se le retrasa todo un mes…"></textarea>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.9"
+         data-q="4.9 Información asimétrica: qué sé yo que él no sabe, qué sabe él que yo ignoro, y cómo pienso averiguarlo en la reunión">
+      <div class="q-title"><span class="qid">4.9</span>Información asimétrica</div>
+      <textarea data-name="Lo que sé yo y él no sabe" placeholder="Ej.: su urgencia real (mudanza el día 15), que su «otro presupuesto» ya caducó…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Lo que sabe él y yo ignoro" placeholder="Ej.: cuánto le presupuestaron de verdad, si ya habló con otro colega, cuánto puede gastar…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Cómo pienso averiguarlo en la reunión" placeholder="Ej.: preguntar su presupuesto total; pedir ver el presupuesto rival; preguntar por fechas…"></textarea>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.10"
+         data-q="4.10 Fuentes de poder propias en este caso (tipología clásica: recompensa, coercitivo, legítimo, experto, referente)">
+      <div class="q-title"><span class="qid">4.10</span>Mis fuentes de poder</div>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Experto: conocimiento técnico que el otro no tiene"> Experto: conocimiento técnico que el otro no tiene</label>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Referente: me respetan y me recomiendan en mi entorno"> Referente: me respetan y me recomiendan</label>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Legítimo: normativa, contrato o título que me da autoridad"> Legítimo: normativa, contrato o título</label>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Recompensa: puedo dar algo valioso a cambio (rapidez, garantía, extra)"> Recompensa: puedo dar algo valioso a cambio</label>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Coercitivo suave: puedo retirar algo (mi disponibilidad, la fecha de inicio)"> Coercitivo suave: puedo retirar algo (disponibilidad, fecha)</label>
+      <label class="opt"><input type="checkbox" name="q4_10" value="Ninguna clara"> Ninguna clara</label>
+    </div>
+
+    <div class="q" data-block="4. MAPAN / BATNA" data-id="4.11"
+         data-q="4.11 Plan de escalado: si no hay acuerdo, ¿qué pasa después? (alimenta el MAPAN y el guion de retirada)">
+      <div class="q-title"><span class="qid">4.11</span>Si no hay acuerdo, ¿qué pasa después?</div>
+      <label class="opt"><input type="radio" name="q4_11" value="Nada: cada uno sigue su camino"> Nada: cada uno sigue su camino</label>
+      <label class="opt"><input type="radio" name="q4_11" value="Se enfría la relación (pérdida de contacto o de recomendaciones)"> Se enfría la relación (pérdida de contacto o recomendaciones)</label>
+      <label class="opt"><input type="radio" name="q4_11" value="Su proyecto o su asunto se perjudica (queda parado, sanción, desperfecto)"> Su proyecto se perjudica (queda parado, sanción, desperfecto)</label>
+      <label class="opt"><input type="radio" name="q4_11" value="Vía formal: arbitraje, consumo o judicial"> Vía formal: arbitraje, consumo o judicial</label>
+      <label class="opt"><input type="radio" name="q4_11" value="No lo sé"> No lo sé</label>
+    </div>
+
+    <div class="q extra" data-block="4. MAPAN / BATNA" data-id="4.12"
+         data-q="4.12 ¿Algo más sobre alternativas y poder de negociación que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">4.12</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre MAPAN y poder" placeholder="Otros datos sobre dependencias, contactos en juego, poder relativo…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 5 ================= -->
+  <section class="card">
+    <h2>Bloque 5 — Análisis de la otra parte</h2>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.1"
+         data-q="5.1 ¿Quién es la persona con la que se va a negociar?">
+      <div class="q-title"><span class="qid">5.1</span>Interlocutor</div>
+      <label class="opt"><input type="radio" name="q5_1" value="Cliente particular (persona)"> Cliente particular (persona)</label>
+      <label class="opt"><input type="radio" name="q5_1" value="Empresa u organización (dirección, compras, RR.HH.…)"> Empresa u organización (dirección, compras, RR.HH.…)</label>
+      <label class="opt"><input type="radio" name="q5_1" value="Responsable técnico del proyecto"> Responsable técnico del proyecto</label>
+      <label class="opt"><input type="radio" name="q5_1" value="Intermediario o gestor (agente, administrador…)"> Intermediario o gestor (agente, administrador…)</label>
+      <label class="opt"><input type="radio" name="q5_1" value="Profesional o proveedor (yo soy quien compra)"> Profesional o proveedor (yo soy quien compra)</label>
+      <label class="opt"><input type="radio" name="q5_1" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.2"
+         data-q="5.2 ¿Quién decide realmente el precio en la otra parte? (error clásico: negociar con quien no decide)">
+      <div class="q-title"><span class="qid">5.2</span>Quién decide</div>
+      <label class="opt"><input type="radio" name="q5_2" value="La persona con la que hablo decide sola"> La persona con la que hablo decide sola</label>
+      <label class="opt"><input type="radio" name="q5_2" value="Debe consultarlo con su pareja / familia"> Debe consultarlo con su pareja / familia</label>
+      <label class="opt"><input type="radio" name="q5_2" value="Debe consultarlo con un superior (jefe, empresa)"> Debe consultarlo con un superior (jefe, empresa)</label>
+      <label class="opt"><input type="radio" name="q5_2" value="Depende de la financiación (banco, préstamo)"> Depende de la financiación (banco, préstamo)</label>
+      <label class="opt"><input type="radio" name="q5_2" value="No lo sé todavía"> No lo sé todavía</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.3"
+         data-q="5.3 Estilo previsible de negociador de la otra parte: tipo de negociador y estilo de comunicación (tipología del curso: Relacionador, Persuasivo, Analítico, Directivo)">
+      <div class="q-title"><span class="qid">5.3</span>Estilo del negociador</div>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Comparador obsesivo de ofertas y presupuestos"> Comparador obsesivo de ofertas y presupuestos</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Regateador duro (pide descuentos constantemente)"> Regateador duro (pide descuentos constantemente)</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Despistado que solo quiere que le resuelvan el problema"> Despistado que solo quiere que le resuelvan el problema</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Desconfiado (miedo a ser engañado)"> Desconfiado (miedo a ser engañado)</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Directo y rápido, sin rodeos"> Directo y rápido, sin rodeos</label>
+      <p class="subhead">Estilo de comunicación (tipología del curso)</p>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Estilo Relacionador: busca consenso y buen trato, evita el choque"> Relacionador: busca consenso y buen trato</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Estilo Persuasivo: extrovertido y entusiasta, se deja llevar por la impresión"> Persuasivo: extrovertido, se mueve por impresiones</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Estilo Analítico: quiere datos, desgloses y calidad comprobable"> Analítico: quiere datos, desgloses y calidad</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Estilo Directivo: autoritario, decide rápido, resultados sobre relación"> Directivo: autoritario, decide rápido</label>
+      <label class="opt"><input type="checkbox" name="q5_3" value="Todavía no lo conozco"> Todavía no lo conozco</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.4"
+         data-q="5.4 Intereses VISIBLES de la otra parte (los que declara abiertamente)">
+      <div class="q-title"><span class="qid">5.4</span>Intereses visibles</div>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Pagar lo menos posible"> Pagar lo menos posible</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Cobrar lo máximo posible por el trabajo"> Cobrar lo máximo posible por el trabajo</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Rapidez: que el trabajo esté hecho cuanto antes"> Rapidez: que esté hecho cuanto antes</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Acabar ya con el trámite (cansado de gestionar el asunto)"> Acabar ya con el trámite (cansado de gestionar el asunto)</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Calidad y buen material"> Calidad y buen material</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Todo incluido sin sorpresas (precio cerrado)"> Todo incluido sin sorpresas (precio cerrado)</label>
+      <label class="opt"><input type="checkbox" name="q5_4" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.5"
+         data-q="5.5 Intereses OCULTOS o no dichos que se sospechan en la otra parte">
+      <div class="q-title"><span class="qid">5.5</span>Intereses ocultos sospechados</div>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Miedo a ser engañado o a pagar de más"> Miedo a ser engañado o a pagar de más</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Presupuesto limitado o financiado por el banco"> Presupuesto limitado o financiado por el banco</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Prisa real por tenerlo resuelto"> Prisa real por tenerlo resuelto</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Miedo a que el resultado sea de mala calidad"> Miedo a que el resultado sea de mala calidad</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Apariencia ante terceros (quedar bien, presumir)"> Apariencia ante terceros (quedar bien)</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Miedo a problemas de garantía futuros"> Miedo a problemas de garantía futuros</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="Necesidad de ingresos urgentes (si es quien vende)"> Necesidad de ingresos urgentes (si es quien vende)</label>
+      <label class="opt"><input type="checkbox" name="q5_5" value="No lo sé"> No lo sé</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.6"
+         data-q="5.6 ¿Existe relación previa entre las partes?">
+      <div class="q-title"><span class="qid">5.6</span>Relación previa</div>
+      <label class="opt"><input type="radio" name="q5_6" value="Nos conocíamos personalmente antes"> Nos conocíamos personalmente antes</label>
+      <label class="opt"><input type="radio" name="q5_6" value="Recomendación de un tercero"> Recomendación de un tercero</label>
+      <label class="opt"><input type="radio" name="q5_6" value="Cliente repetidor (ya hemos trabajado antes)"> Cliente repetidor (ya hemos trabajado antes)</label>
+      <label class="opt"><input type="radio" name="q5_6" value="Primera vez, contacto por internet"> Primera vez, contacto por internet</label>
+      <label class="opt"><input type="radio" name="q5_6" value="Primera vez, contacto presencial"> Primera vez, contacto presencial</label>
+      <div style="margin-top:6px">
+        <textarea data-name="Qué sé de la otra parte a través de mi red" placeholder="Si viene por recomendación: ¿quién me refiere y qué sé del cliente gracias a mi red de contactos? (opcional)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.7" data-express="1"
+         data-q="5.7 ¿Ha recibido o entregado ya la otra parte otros presupuestos? ¿De cuánto? (dato clave para la ZOPA: indica el importe del más barato si lo conoces)">
+      <div class="q-title"><span class="qid">5.7</span>Otros presupuestos en juego</div>
+      <label class="opt"><input type="radio" name="q5_7" value="Sí, y conozco las cifras"> Sí, y conozco las cifras</label>
+      <label class="opt"><input type="radio" name="q5_7" value="Sí existen, pero no sé las cifras"> Sí existen, pero no sé las cifras</label>
+      <label class="opt"><input type="radio" name="q5_7" value="No creo que haya otros presupuestos"> No creo que haya otros presupuestos</label>
+      <label class="opt"><input type="radio" name="q5_7" value="No lo sé"> No lo sé</label>
+      <div class="inline" style="margin-top:8px">
+        <div><label>Importe rival conocido</label><input type="number" data-name="Importe del presupuesto competidor más barato conocido" data-unit="€" min="0" placeholder="4200"></div>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Cifras de otros presupuestos conocidos" placeholder="Ej.: me han dicho que tienen otra oferta de 4.200 € de un conocido, pero sin garantía ni seguro…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.8"
+         data-q="5.8 Valor de la relación futura: ¿se espera más trabajo o influencia de esta parte después de este encargo? (cuanto más vale la relación a largo plazo, más puede compensar ceder algo hoy)">
+      <div class="q-title"><span class="qid">5.8</span>Relación futura esperada</div>
+      <label class="opt"><input type="checkbox" name="q5_8" value="Mantenimiento o soporte posterior del mismo trabajo"> Mantenimiento o soporte posterior del mismo trabajo</label>
+      <label class="opt"><input type="checkbox" name="q5_8" value="Segunda fase o ampliación pendiente"> Segunda fase o ampliación pendiente</label>
+      <label class="opt"><input type="checkbox" name="q5_8" value="Puede recomendarme a conocidos (boca a boca)"> Puede recomendarme a conocidos (boca a boca)</label>
+      <label class="opt"><input type="checkbox" name="q5_8" value="Empresa o cliente con más encargos futuros"> Empresa o cliente con más encargos futuros</label>
+      <label class="opt"><input type="checkbox" name="q5_8" value="Probablemente no habrá más trabajo"> Probablemente no habrá más trabajo</label>
+      <div class="inline" style="margin-top:8px">
+        <div><label>Valor relación futura (0-10)</label><input type="range" min="0" max="10" value="5" data-name="Valor de la relación futura (0-10)"><output class="rv">5</output></div>
+      </div>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.9"
+         data-q="5.9 Bitácora de la relación: fechas y resumen de cada conversación previa (qué se dijo, qué se acordó, qué se rompió)">
+      <div class="q-title"><span class="qid">5.9</span>Bitácora de la relación</div>
+      <textarea data-name="Bitácora de conversaciones previas" placeholder="Ej.: 3/oct WhatsApp: le paso el presupuesto de 6.500 €; 7/oct llamada: dice que le parece mucho pero pregunta fechas; 9/oct: su mujer me llama y parece más decidida que él…"></textarea>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.10"
+         data-q="5.10 Historial negociador: cómo acabaron negociaciones anteriores con esta misma persona o empresa (patrones que se repiten)">
+      <div class="q-title"><span class="qid">5.10</span>Historial con esta parte</div>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Sin historia: es la primera vez que negociamos"> Sin historia: es la primera vez</label>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Regatea siempre, incluso al final"> Regatea siempre, incluso al final</label>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Paga tarde (o toca recordar la factura)"> Paga tarde o toca recordárselo</label>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Promete y luego cambia lo acordado"> Promete y luego cambia lo acordado</label>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Buen pagador y cumplidor: relación sana"> Buen pagador y cumplidor</label>
+      <label class="opt"><input type="checkbox" name="q5_10" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.11"
+         data-q="5.11 Terceros que influyen en la decisión aunque no estén en la mesa (a menudo son quienes mueven la decisión real)">
+      <div class="q-title"><span class="qid">5.11</span>Terceros que influyen</div>
+      <label class="opt"><input type="checkbox" name="q5_11" value="Pareja o familia del interlocutor"> Pareja o familia del interlocutor</label>
+      <label class="opt"><input type="checkbox" name="q5_11" value="Jefe, socios o administración de la empresa"> Jefe, socios o administración</label>
+      <label class="opt"><input type="checkbox" name="q5_11" value="Asesor externo (gestor, abogado, arquitecto…)"> Asesor externo (gestor, abogado, arquitecto…)</label>
+      <label class="opt"><input type="checkbox" name="q5_11" value="No hay terceros con influencia"> No hay terceros con influencia</label>
+      <label class="opt"><input type="checkbox" name="q5_11" value="No lo sé"> No lo sé</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.12"
+         data-q="5.12 Jerarquizar los intereses de la otra parte: ordénalos de más a menos importante; la IA construirá los argumentos en ese orden">
+      <div class="q-title"><span class="qid">5.12</span>Prioridades del otro, ordenadas</div>
+      <textarea data-name="Intereses del otro ordenados de más a menos importante" placeholder="Ej.: 1º que esté listo antes del 30 (mudanza); 2º precio cerrado sin sorpresas; 3º buena calidad; 4º pagar poco a poco…"></textarea>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.13"
+         data-q="5.13 Mi red de contactos en este caso (networking): quién me refiere, a quién conozco que conozca al interlocutor, quién puede influir">
+      <div class="q-title"><span class="qid">5.13</span>Mi red en este caso</div>
+      <label class="opt"><input type="checkbox" name="q5_13" value="El caso llega por recomendación de alguien"> El caso llega por recomendación</label>
+      <label class="opt"><input type="checkbox" name="q5_13" value="Conozco a alguien que conoce al interlocutor"> Conozco a alguien que conoce al interlocutor</label>
+      <label class="opt"><input type="checkbox" name="q5_13" value="Tengo un contacto que puede mediar a mi favor"> Un contacto puede mediar a mi favor</label>
+      <label class="opt"><input type="checkbox" name="q5_13" value="No tengo red útil en este caso"> No tengo red útil en este caso</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.14"
+         data-q="5.14 Señales de compra ya emitidas por el otro lado (indican intención real de cerrar conmigo)">
+      <div class="q-title"><span class="qid">5.14</span>Señales de compra detectadas</div>
+      <label class="opt"><input type="checkbox" name="q5_14" value="Hace preguntas de detalle (materiales, plazos, garantía)"> Preguntas de detalle (materiales, plazos, garantía)</label>
+      <label class="opt"><input type="checkbox" name="q5_14" value="Habla de fechas y disponibilidad («¿cuánto tardarías en…?»)"> Habla de fechas y disponibilidad</label>
+      <label class="opt"><input type="checkbox" name="q5_14" value="Pide ajustes menores en vez de rechazar el precio"> Pide ajustes menores en vez de rechazar</label>
+      <label class="opt"><input type="checkbox" name="q5_14" value="Ninguna señal todavía"> Ninguna señal todavía</label>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.15" data-express="1"
+         data-q="5.15 Presupuesto máximo real de la otra parte (willingness to pay): ¿cuánto puede pagar de verdad y cómo lo sé? (cruzado con 5.7 delimita la ZOPA por arriba)">
+      <div class="q-title"><span class="qid">5.15</span>Presupuesto máximo real del otro</div>
+      <div class="inline">
+        <div><label>Cifra máxima estimada</label><input type="number" data-name="Presupuesto máximo real del otro" data-unit="€" min="0" placeholder="7000"></div>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Cómo sé su presupuesto máximo" placeholder="Ej.: comentó que el banco le dio hasta 7.000; lo que pagó a un vecino por algo parecido…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="5. Análisis de la otra parte" data-id="5.16"
+         data-q="5.16 Factor intercultural: ¿el interlocutor es de otra cultura o país? (estilo directo vs relacional, concepto del tiempo, jerarquía, uso del silencio)">
+      <div class="q-title"><span class="qid">5.16</span>Factor intercultural</div>
+      <label class="opt"><input type="radio" name="q5_16" value="Misma cultura y país: sin factor intercultural"> Misma cultura y país</label>
+      <label class="opt"><input type="radio" name="q5_16" value="Otra cultura de estilo más directo que el mío"> Otra cultura de estilo más directo</label>
+      <label class="opt"><input type="radio" name="q5_16" value="Otra cultura más relacional: primero relación, luego negocio"> Otra cultura más relacional (primero relación)</label>
+      <label class="opt"><input type="radio" name="q5_16" value="No lo sé / no aplica"> No lo sé / no aplica</label>
+    </div>
+
+    <div class="q extra" data-block="5. Análisis de la otra parte" data-id="5.17"
+         data-q="5.17 ¿Algo más sobre la otra parte que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">5.17</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre la otra parte" placeholder="Anécdotas, señales, conversaciones previas, lo que te haya comentado…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 6 ================= -->
+  <section class="card">
+    <h2>Bloque 6 — Variables del acuerdo</h2>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.1"
+         data-q="6.1 Condiciones de pago del trabajo">
+      <div class="q-title"><span class="qid">6.1</span>Pago</div>
+      <div class="row"><span>Pago anticipado a la firma</span>
+        <select data-name="Pago anticipado">
+          <option value="">Sin responder</option>
+          <option>Sin pago anticipado (0%)</option>
+          <option>25% anticipado</option>
+          <option>30-50% anticipado</option>
+          <option>Más del 50% anticipado</option>
+        </select>
+      </div>
+      <div class="row"><span>Fraccionamiento por fases</span>
+        <select data-name="Fraccionamiento">
+          <option value="">Sin responder</option>
+          <option>Sí: pagos por fases del trabajo</option>
+          <option>No: un solo pago al final</option>
+          <option>A negociar</option>
+        </select>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="checkbox" name="q6_1" value="Acepto transferencia bancaria"> Acepto transferencia bancaria</label>
+        <label class="opt"><input type="checkbox" name="q6_1" value="Aceptaría efectivo a cambio de descuento"> Aceptaría efectivo a cambio de descuento</label>
+        <label class="opt"><input type="checkbox" name="q6_1" value="Pago contra factura con vencimiento"> Pago contra factura con vencimiento</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.2" data-hideon="Salario"
+         data-q="6.2 Alcance del trabajo: qué incluye y qué no incluye el precio">
+      <div class="q-title"><span class="qid">6.2</span>Alcance</div>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Permisos, licencias y trámites incluidos"> Permisos, licencias y trámites incluidos</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Los materiales o productos los aporto yo"> Los materiales o productos los aporto yo</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Los materiales o productos los compra el cliente"> Los materiales o productos los compra el cliente</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Opción básica o estándar"> Opción básica o estándar</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Opción premium a elegir por el cliente"> Opción premium a elegir por el cliente</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Limpieza o retirada de residuos incluida"> Limpieza o retirada de residuos incluida</label>
+      <label class="opt"><input type="checkbox" name="q6_2" value="Pequeños ajustes o extras que surjan, incluidos"> Pequeños ajustes o extras que surjan, incluidos</label>
+    </div>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.3"
+         data-q="6.3 Plazos de ejecución: fechas de inicio y fin, y qué ocurre con los retrasos">
+      <div class="q-title"><span class="qid">6.3</span>Plazos</div>
+      <div class="inline">
+        <div><label>Inicio previsto</label><input type="date" data-name="Fecha de inicio"></div>
+        <div><label>Fin previsto</label><input type="date" data-name="Fecha de finalización"></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="radio" name="q6_3" value="Me exigen penalización por retraso"> Me exigen penalización por retraso</label>
+        <label class="opt"><input type="radio" name="q6_3" value="Puedo proponer yo la penalización (a mi favor)"> Puedo proponer yo la penalización (a mi favor)</label>
+        <label class="opt"><input type="radio" name="q6_3" value="No hay penalización pactada"> No hay penalización pactada</label>
+        <label class="opt"><input type="radio" name="q6_3" value="Necesito flexibilidad si surge otro trabajo urgente"> Necesito flexibilidad si surge otro trabajo urgente</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.4"
+         data-q="6.4 Garantías y servicio posterior al trabajo">
+      <div class="q-title"><span class="qid">6.4</span>Garantías</div>
+      <div class="row"><span>Garantía ofertada / exigida</span>
+        <select data-name="Garantía">
+          <option value="">Sin responder</option>
+          <option>3 meses</option>
+          <option>6 meses</option>
+          <option>12 meses</option>
+          <option>24 meses o más</option>
+          <option>Garantía legal aplicable, por escrito</option>
+        </select>
+      </div>
+      <div class="row"><span>Soporte o servicio posterior</span>
+        <select data-name="Soporte o servicio posterior">
+          <option value="">Sin responder</option>
+          <option>Incluido gratis durante un tiempo</option>
+          <option>A tarifas normales</option>
+          <option>No se ha hablado todavía</option>
+        </select>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="checkbox" name="q6_4" value="Entrego toda la documentación y certificados firmados"> Entrego toda la documentación y certificados firmados</label>
+        <label class="opt"><input type="checkbox" name="q6_4" value="Ayudo con gestiones ante terceros (administración, compañías…)"> Ayudo con gestiones ante terceros (administración, compañías…)</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.5"
+         data-q="6.5 Otras variables concretas de este caso que pueden intercambiarse en la negociación">
+      <div class="q-title"><span class="qid">6.5</span>Otras variables intercambiables</div>
+      <label class="opt"><input type="checkbox" name="q6_5" value="Asesorar en la elección o compra de materiales/productos"> Asesorar en la elección o compra de materiales/productos</label>
+      <label class="opt"><input type="checkbox" name="q6_5" value="Ejecutar por fases según la liquidez del cliente"> Ejecutar por fases según la liquidez del cliente</label>
+      <label class="opt"><input type="checkbox" name="q6_5" value="Dejarlo todo preparado para ampliaciones futuras"> Dejarlo todo preparado para ampliaciones futuras</label>
+      <label class="opt"><input type="checkbox" name="q6_5" value="Usar el trabajo como muestra o referencia (fotos, caso de éxito)"> Usar el trabajo como muestra o referencia (fotos, caso de éxito)</label>
+      <label class="opt"><input type="checkbox" name="q6_5" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="6. Variables del acuerdo" data-id="6.6"
+         data-q="6.6 Matriz de asimetría de valoración: para cada variable del acuerdo, ¿cómo es su coste para la parte propia frente al valor que tiene para la otra parte? (base para la estrategia de extracción de valor en el margen: conceder lo que a mí me cuesta poco y a él le vale mucho)">
+      <div class="q-title"><span class="qid">6.6</span>Matriz de valoraciones (coste para mí vs. valor para el otro)</div>
+      <p class="hint">Clave para la estrategia del margen: identifica qué ceder te cuesta poco y al otro le vale mucho</p>
+      <div class="row"><span>Pago fraccionado / condiciones de pago</span>
+        <select data-name="Pago fraccionado">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Permisos y trámites</span>
+        <select data-name="Permisos y trámites">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Calidad de materiales o productos</span>
+        <select data-name="Calidad de materiales o productos">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Limpieza y retirada de residuos</span>
+        <select data-name="Limpieza y retirada de residuos">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Flexibilidad de fechas de ejecución</span>
+        <select data-name="Flexibilidad de fechas">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Garantía y servicio posterior</span>
+        <select data-name="Garantía y servicio posterior">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Gestiones ante terceros</span>
+        <select data-name="Gestiones ante terceros">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Asesoría en compra de materiales</span>
+        <select data-name="Asesoría en materiales">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+      <div class="row"><span>Ejecución por fases según liquidez</span>
+        <select data-name="Fases por liquidez">
+          <option value="">Sin responder</option>
+          <option>Me cuesta poco y le vale mucho</option>
+          <option>Valoración equilibrada</option>
+          <option>Me cuesta mucho y le importa poco</option>
+          <option>No aplica</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="q extra" data-block="6. Variables del acuerdo" data-id="6.7"
+         data-q="6.7 ¿Alguna otra variable del acuerdo que se pueda negociar y no aparezca? (campo libre opcional)">
+      <div class="q-title"><span class="qid">6.7</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre variables del acuerdo" placeholder="Cualquier otra condición intercambiable de este caso concreto…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 7 ================= -->
+  <section class="card">
+    <h2>Bloque 7 — Argumentos y evidencias</h2>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.1"
+         data-q="7.1 Argumentos racionales que justifican el precio (se piden al menos dos)">
+      <div class="q-title"><span class="qid">7.1</span>Argumentos racionales</div>
+      <textarea data-name="Argumentos racionales" placeholder="Ej.: 8 jornadas reales a 30 €/h; los materiales cuestan 3.500 €; la normativa del sector obliga a…; corregir un mal trabajo después cuesta el doble…"></textarea>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.2"
+         data-q="7.2 Argumento de valor con su evidencia (por qué conmigo y no con otro)">
+      <div class="q-title"><span class="qid">7.2</span>Argumento de valor con evidencia</div>
+      <textarea data-name="Argumento de valor" placeholder="Ej.: 12 años sin una reclamación, 40 reseñas a 4,9 estrellas, seguro RC de 300.000 €, documentación siempre en regla…"></textarea>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.3"
+         data-q="7.3 ¿Cuál será la objeción más probable de la otra parte?">
+      <div class="q-title"><span class="qid">7.3</span>Objeción más probable</div>
+      <label class="opt"><input type="radio" name="q7_3" value="«Me sale muy caro»"> «Me sale muy caro»</label>
+      <label class="opt"><input type="radio" name="q7_3" value="«Tengo otro presupuesto a mitad de precio»"> «Tengo otro presupuesto a mitad de precio»</label>
+      <label class="opt"><input type="radio" name="q7_3" value="«Mi primo / un conocido me lo hace más barato»"> «Mi primo / un conocido me lo hace más barato»</label>
+      <label class="opt"><input type="radio" name="q7_3" value="«Lo tengo que pensar / consultar»"> «Lo tengo que pensar / consultar»</label>
+      <label class="opt"><input type="radio" name="q7_3" value="«Bájame algo y lo cierro hoy»"> «Bájame algo y lo cierro hoy»</label>
+      <label class="opt"><input type="radio" name="q7_3" value="Otra objeción"> Otra objeción:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="¿cuál?"></span></label>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.4"
+         data-q="7.4 Respuesta preparada a esa objeción (borrador propio, la estrategia la pulirá)">
+      <div class="q-title"><span class="qid">7.4</span>Respuesta preparada a la objeción</div>
+      <textarea data-name="Respuesta a la objeción" placeholder="Ej.: desglosar en voz alta el precio: 3.500 de materiales + 8 días + trámites… ¿qué parte de eso sobra?"></textarea>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.5"
+         data-q="7.5 Pregunta de apertura prevista para que la otra parte hable primero y revele información (presupuesto total, otros presupuestos, urgencia)">
+      <div class="q-title"><span class="qid">7.5</span>Pregunta de apertura</div>
+      <textarea data-name="Pregunta de apertura" placeholder="Ej.: ¿qué presupuesto total manejas para todo el proyecto?; ¿tienes ya otras ofertas?; ¿para cuándo necesitas tenerlo resuelto?"></textarea>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.6"
+         data-q="7.6 Criterios objetivos externos que legitiman el precio ante la otra parte (método Harvard: criterios independientes de la voluntad de las partes: mercado, normativa, precedentes)">
+      <div class="q-title"><span class="qid">7.6</span>Criterios objetivos</div>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Precios medios de la zona para trabajos o servicios comparables"> Precios medios de la zona para trabajos comparables</label>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Normativa técnica o legal del sector que fija mínimos obligatorios"> Normativa técnica o legal del sector</label>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Tarifas o precios de referencia del gremio / asociación profesional"> Tarifas o precios de referencia del gremio</label>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Precedentes míos: trabajos anteriores con precio parecido y buen resultado"> Precedentes míos con precio parecido</label>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Presupuestos de otros profesionales que se pueden mostrar"> Presupuestos de otros profesionales mostrables</label>
+      <label class="opt"><input type="checkbox" name="q7_6" value="Valoración de un tercero independiente (perito, asociación, experto)"> Valoración de un tercero independiente</label>
+      <div style="margin-top:6px">
+        <textarea data-name="Criterio objetivo y su cifra" placeholder="Indica el criterio y la cifra si la conoces (ej.: la media de la zona ronda X € por unidad o servicio con todo incluido)…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="7. Argumentos y evidencias" data-id="7.7"
+         data-q="7.7 Palancas de persuasión ética disponibles (principios de influencia de Cialdini: usar solo con información verdadera, sin escasez falsa ni datos inventados)">
+      <div class="q-title"><span class="qid">7.7</span>Palancas de persuasión disponibles</div>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Prueba social: reseñas, clientes que recomiendan, fotos de trabajos"> Prueba social: reseñas y clientes que recomiendan</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Autoridad: certificados, años de oficio, seguro RC, documentación en regla"> Autoridad: certificados, oficio, seguro RC</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Reciprocidad: algo que ya he regalado (visita técnica, asesoría, medición sin coste)"> Reciprocidad: ya he dado algo (visita, asesoría)</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Escasez REAL: agenda con fechas concretas ocupadas"> Escasez real: agenda ocupada con fechas concretas</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Compromiso y coherencia: acuerdos parciales ya aceptados por la otra parte"> Compromiso: acuerdos parciales ya aceptados</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Simpatía: puntos en común, conocidos mutuos, buen rapport previo"> Simpatía: puntos en común o conocidos mutuos</label>
+      <label class="opt"><input type="checkbox" name="q7_7" value="Ninguna palanca clara"> Ninguna palanca clara</label>
+    </div>
+
+    <div class="q extra" data-block="7. Argumentos y evidencias" data-id="7.8"
+         data-q="7.8 ¿Algo más sobre argumentos y evidencias que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">7.8</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre argumentos" placeholder="Cualquier argumento o evidencia adicional que no haya cabido…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 8 ================= -->
+  <section class="card">
+    <h2>Bloque 8 — Tácticas y estilo</h2>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.1" data-express="1"
+         data-q="8.1 ¿Alguien ha dicho ya alguna cifra? (regla del ancla: el primero que dice su condición fija el punto de referencia; indica las cifras ya dichas y la reacción que provocaron)">
+      <div class="q-title"><span class="qid">8.1</span>¿Quién ha dicho ya cifra? (ancla)</div>
+      <label class="opt"><input type="radio" name="q8_1" value="Yo ya he dado mi precio"> Yo ya he dado mi precio</label>
+      <label class="opt"><input type="radio" name="q8_1" value="La otra parte ya ha dicho su cifra o presupuesto"> La otra parte ya ha dicho su cifra o presupuesto</label>
+      <label class="opt"><input type="radio" name="q8_1" value="Ninguno ha dicho cifra todavía"> Ninguno ha dicho cifra todavía</label>
+      <div class="inline" style="margin-top:8px">
+        <div><label>Mi cifra ya dicha</label><input type="number" data-name="Mi cifra ya comunicada" data-unit="€" min="0" placeholder="6500"></div>
+        <div><label>Su cifra ya dicha</label><input type="number" data-name="Cifra ya dicha por la otra parte" data-unit="€" min="0" placeholder="5000"></div>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Reacción a la cifra ya comunicada" placeholder="¿Cómo reaccionó la otra parte a esa cifra? (la aceptó bien, dijo que era mucho, desapareció una semana, regateó…)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.2"
+         data-q="8.2 Estrategia de anclaje preferida">
+      <div class="q-title"><span class="qid">8.2</span>Estrategia de anclaje</div>
+      <label class="opt"><input type="radio" name="q8_2" value="Dar yo el primer precio, alto y bien justificado (anclar yo)"> Dar yo el primer precio, alto y bien justificado (anclar yo)</label>
+      <label class="opt"><input type="radio" name="q8_2" value="Que la otra parte diga primero su cifra/presupuesto (anclar él)"> Que la otra parte diga primero su cifra (anclar él)</label>
+      <label class="opt"><input type="radio" name="q8_2" value="No lo tengo claro: que la estrategia lo decida"> No lo tengo claro: que la estrategia lo decida</label>
+    </div>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.3"
+         data-q="8.3 ¿Disposición a usar concesiones en el margen (cosas de bajo coste propio y alto valor para el otro) como moneda de cambio en lugar de bajar el precio base?">
+      <div class="q-title"><span class="qid">8.3</span>Concesiones en el margen</div>
+      <label class="opt"><input type="radio" name="q8_3" value="Sí: dispuesto a trueques marginales (ninguna concesión gratis)"> Sí: dispuesto a trueques marginales (ninguna concesión gratis)</label>
+      <label class="opt"><input type="radio" name="q8_3" value="Solo si es imprescindible para cerrar"> Solo si es imprescindible para cerrar</label>
+      <label class="opt"><input type="radio" name="q8_3" value="Prefiero negociar directamente el precio base"> Prefiero negociar directamente el precio base</label>
+      <label class="opt"><input type="radio" name="q8_3" value="Guardaré concesiones marginales para el momento de la firma"> Guardaré concesiones marginales para el momento de la firma</label>
+    </div>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.4"
+         data-q="8.4 ¿Qué NO debe aparecer en la estrategia? (límites de estilo)">
+      <div class="q-title"><span class="qid">8.4</span>Exclusiones</div>
+      <label class="opt"><input type="checkbox" name="q8_4" value="Sin tácticas agresivas ni confrontativas"> Sin tácticas agresivas ni confrontativas</label>
+      <label class="opt"><input type="checkbox" name="q8_4" value="Sin frases hechas ni diálogos literales"> Sin frases hechas ni diálogos literales</label>
+      <label class="opt"><input type="checkbox" name="q8_4" value="Nada que dañe la relación a largo plazo"> Nada que dañe la relación a largo plazo</label>
+      <label class="opt"><input type="checkbox" name="q8_4" value="Sin exclusiones: vale todo lo legal y ético"> Sin exclusiones: vale todo lo legal y ético</label>
+      <div style="margin-top:6px">
+        <textarea data-name="Otras exclusiones" placeholder="Otras indicaciones (opcional)"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.5" data-express="1"
+         data-q="8.5 Plan de concesiones: bajada máxima total, número máximo de escalones y secuencia prevista (las concesiones deben ser decrecientes, etiquetadas con su valor y siempre a cambio de algo)">
+      <div class="q-title"><span class="qid">8.5</span>Plan de concesiones</div>
+      <div class="inline">
+        <div><label>Bajada máx. total</label><input type="number" data-name="Bajada máxima total aceptada" data-unit="€" min="0" placeholder="300"></div>
+        <div><label>Nº máx. escalones</label><input type="number" data-name="Número máximo de concesiones" min="0" placeholder="2"></div>
+      </div>
+      <div style="margin-top:6px">
+        <textarea data-name="Secuencia prevista de concesiones" placeholder="Ej.: 1ª concesión: 6.400 € solo si firma hoy y paga 50% anticipado; 2ª: 6.300 € reduciendo alcance (opción estándar en vez de premium); nunca por debajo de 6.000 €…"></textarea>
+      </div>
+    </div>
+
+    <div class="q" data-block="8. Tácticas y estilo" data-id="8.6"
+         data-q="8.6 Información adicional relevante para preparar la estrategia (miedos, circunstancias, detalles del caso)">
+      <div class="q-title"><span class="qid">8.6</span>Información adicional</div>
+      <textarea data-name="Información adicional relevante" placeholder="Cualquier dato que no haya cabido antes y que deba tenerse en cuenta…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 9 ================= -->
+  <section class="card">
+    <h2>Bloque 9 — Escenarios y tácticas difíciles</h2>
+
+    <div class="q" data-block="9. Escenarios y tácticas difíciles" data-id="9.1"
+         data-q="9.1 Previsión de escenarios: favorable, probable y adverso, y plan B si la reunión se atasca (el plan B no es el MAPAN: es cómo reorientar la conversación antes de romper)">
+      <div class="q-title"><span class="qid">9.1</span>Escenario favorable / probable / adverso</div>
+      <textarea data-name="Escenario favorable" placeholder="Favorable: ej. acepta 6.500 € con pago anticipado sin apenas regatear porque tiene prisa…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Escenario probable" placeholder="Probable: ej. regatea un 10%, cerramos en 6.000 € con alguna concesión marginal a mi costa…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Escenario adverso" placeholder="Adverso: ej. aparece un presupuesto rival a mitad de precio y tendré que defender el valor o retirarme…"></textarea>
+      <div class="row" style="margin-top:10px"><span>Si la reunión se atasca, mi plan B es…</span>
+        <select data-name="Plan B si se atasca">
+          <option value="">Sin responder</option>
+          <option>Parar y retomar en unos días con una propuesta nueva</option>
+          <option>Pedir hablar directamente con quien decide</option>
+          <option>Ofrecer un paquete reducido (menos alcance, menos precio)</option>
+          <option>Invitar a la otra parte a usar su alternativa y dejar la puerta abierta</option>
+          <option>Dar por cerrado sin acuerdo (usar mi MAPAN)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="q" data-block="9. Escenarios y tácticas difíciles" data-id="9.2"
+         data-q="9.2 Tácticas de presión o juego duro que se espera que use la otra parte (para preparar la contramedida: reconocer y nombrar la táctica, no responder con emoción, pausa, y recordar el MAPAN como escudo)">
+      <div class="q-title"><span class="qid">9.2</span>Tácticas difíciles esperadas</div>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Ultimátum: «tómalo o déjalo»"> Ultimátum: «tómalo o déjalo»</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Presión de tiempo falsa: «tengo otra oferta que caduca hoy»"> Presión de tiempo falsa: «tengo otra oferta que caduca hoy»</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Poli bueno y poli malo (dos interlocutores: uno duro y otro amable)"> Poli bueno y poli malo</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Descalificación: «todos los de tu gremio sois unos caros»"> Descalificación: «todos los de tu gremio sois unos caros»</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Cambios de condiciones a última hora (cuando ya estaba todo cerrado)"> Cambios de condiciones a última hora</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Presupuesto rival dudoso o no mostrado («tengo uno más barato» pero no lo enseña)"> Presupuesto rival dudoso o no mostrado</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Regateo constante por mensajería (desgaste por WhatsApp)"> Regateo constante por mensajería</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Silencio o desaparición (deja de responder para desesperar)"> Silencio o desaparición</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="Dividir y vencer (la pareja o un familiar negocia por debajo de lo acordado)"> Dividir y vencer con otro familiar</label>
+      <label class="opt"><input type="checkbox" name="q9_2" value="No espero ninguna táctica difícil"> No espero ninguna táctica difícil</label>
+    </div>
+
+    <div class="q extra" data-block="9. Escenarios y tácticas difíciles" data-id="9.3"
+         data-q="9.3 ¿Algo más sobre escenarios o tácticas difíciles que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">9.3</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre escenarios y tácticas" placeholder="Otros comportamientos difíciles que esperas, o cómo te fue con esta persona en el pasado…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 10 ================= -->
+  <section class="card">
+    <h2>Bloque 10 — Ofertas en paquete (MESO), cierre y seguimiento</h2>
+
+    <div class="q" data-block="10. Ofertas MESO, cierre y seguimiento" data-id="10.1"
+         data-q="10.1 Ofertas múltiples simultáneas equivalentes (MESO): 2-3 paquetes igual de aceptables para la parte propia que combinen distinto el precio, el alcance, los plazos y el pago; la opción que elija la otra parte revela su interés real">
+      <div class="q-title"><span class="qid">10.1</span>Paquetes de oferta (MESO)</div>
+      <textarea data-name="Paquete A" placeholder="Paquete A — «Rápido y completo»: 6.800 €, todo incluido, empiezo el lunes, 50% anticipado…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Paquete B" placeholder="Paquete B — «Ajustado»: 6.200 €, opción estándar, materiales los compra el cliente, pago 30/40/30…"></textarea>
+      <div style="height:8px"></div>
+      <textarea data-name="Paquete C" placeholder="Paquete C — «Por fases»: 3.500 € ahora la parte principal y 3.000 € la ampliación en septiembre…"></textarea>
+    </div>
+
+    <div class="q" data-block="10. Ofertas MESO, cierre y seguimiento" data-id="10.2"
+         data-q="10.2 Formalización del acuerdo: cómo se dejará por escrito lo pactado (la claridad en los acuerdos protege frente a cambios de última hora y memoria selectiva)">
+      <div class="q-title"><span class="qid">10.2</span>Formalización del acuerdo</div>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Presupuesto detallado firmado por ambas partes"> Presupuesto detallado firmado</label>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Contrato o encargo por escrito"> Contrato o encargo por escrito</label>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Confirmación por email con todas las condiciones"> Confirmación por email con todas las condiciones</label>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Factura proforma antes de empezar"> Factura proforma antes de empezar</label>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Recibo o justificante del pago anticipado"> Recibo o justificante del pago anticipado</label>
+      <label class="opt"><input type="checkbox" name="q10_2" value="Todavía no está definido"> Todavía no está definido</label>
+    </div>
+
+    <div class="q" data-block="10. Ofertas MESO, cierre y seguimiento" data-id="10.3"
+         data-q="10.3 Plan de seguimiento si NO se cierra en la reunión (evitar que la negociación se enfríe indefinidamente o que el silencio se convierta en un no)">
+      <div class="q-title"><span class="qid">10.3</span>Seguimiento si no se cierra</div>
+      <label class="opt"><input type="checkbox" name="q10_3" value="Llamar a los 2-3 días si no hay respuesta"> Llamar a los 2-3 días si no hay respuesta</label>
+      <label class="opt"><input type="checkbox" name="q10_3" value="Enviar una alternativa ajustada en 48 horas"> Enviar una alternativa ajustada en 48 h</label>
+      <label class="opt"><input type="checkbox" name="q10_3" value="Dar validez limitada al presupuesto (fecha de caducidad)"> Dar validez limitada al presupuesto (caducidad)</label>
+      <label class="opt"><input type="checkbox" name="q10_3" value="Esperar a que contacten ellos"> Esperar a que contacten ellos</label>
+      <label class="opt"><input type="checkbox" name="q10_3" value="Otro"> Otro:
+        <span class="other-wrap"><input type="text" class="other-text" placeholder="especifica"></span></label>
+    </div>
+
+    <div class="q" data-block="10. Ofertas MESO, cierre y seguimiento" data-id="10.4"
+         data-q="10.4 Si la negociación (o parte) es escrita o por mensajería: reglas del canal digital (comprometer plazos de respuesta y cumplirlos, no negociar cifras por WhatsApp, resumir periódicamente lo acordado y confirmar por escrito)">
+      <div class="q-title"><span class="qid">10.4</span>Reglas del canal digital</div>
+      <label class="opt"><input type="checkbox" name="q10_4" value="Comprometer un plazo máximo de respuesta (p. ej. 24 h) y cumplirlo siempre"> Comprometer plazo máximo de respuesta y cumplirlo</label>
+      <label class="opt"><input type="checkbox" name="q10_4" value="Resumir periódicamente lo acordado y lo pendiente («hemos acordado X, queda Z»)"> Resumir periódicamente lo acordado y lo pendiente</label>
+      <label class="opt"><input type="checkbox" name="q10_4" value="No negociar cifras importantes por mensajería: proponer llamada o reunión"> No negociar cifras por mensajería: proponer llamada</label>
+      <label class="opt"><input type="checkbox" name="q10_4" value="Confirmar siempre por email lo hablado, aunque sea breve"> Confirmar siempre por email lo hablado</label>
+      <label class="opt"><input type="checkbox" name="q10_4" value="No aplica: la negociación es presencial"> No aplica: la negociación es presencial</label>
+    </div>
+
+    <div class="q extra" data-block="10. Ofertas MESO, cierre y seguimiento" data-id="10.5"
+         data-q="10.5 ¿Algo más sobre paquetes, cierre o seguimiento que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">10.5</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre MESO, cierre y seguimiento" placeholder="Ideas de paquetes, condiciones de cierre o experiencias previas con esta parte…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 11 ================= -->
+  <section class="card">
+    <h2>Bloque 11 — Ética y cumplimiento (compliance)</h2>
+
+    <div class="q" data-block="11. Ética y cumplimiento" data-id="11.1"
+         data-q="11.1 Facturación de la operación (el cumplimiento fiscal también es un límite de la negociación: lo que se pacte debe poder facturarse correctamente)">
+      <div class="q-title"><span class="qid">11.1</span>Facturación</div>
+      <label class="opt"><input type="radio" name="q11_1" value="Todo facturado con IVA (tipo aplicable)"> Todo facturado con IVA (tipo aplicable)</label>
+      <label class="opt"><input type="radio" name="q11_1" value="Es posible que me propongan pagar una parte en efectivo sin factura («en B»)"> Es posible que me propongan pagar parte «en B» sin factura</label>
+      <label class="opt"><input type="radio" name="q11_1" value="Aún sin definir"> Aún sin definir</label>
+    </div>
+
+    <div class="q" data-block="11. Ética y cumplimiento" data-id="11.2"
+         data-q="11.2 Límites éticos de la estrategia (la persuasión ética se basa en información verdadera: sin escasez falsa, sin datos inventados, sin promesas inviables)">
+      <div class="q-title"><span class="qid">11.2</span>Límites éticos</div>
+      <label class="opt"><input type="checkbox" name="q11_2" value="No inventar presupuestos de la competencia que no existen"> No inventar presupuestos de la competencia</label>
+      <label class="opt"><input type="checkbox" name="q11_2" value="No usar escasez falsa («me quedan huecos» si no es verdad)"> No usar escasez falsa</label>
+      <label class="opt"><input type="checkbox" name="q11_2" value="No aceptar trabajo sin facturar"> No aceptar trabajo sin facturar</label>
+      <label class="opt"><input type="checkbox" name="q11_2" value="No prometer plazos o garantías que no puedo cumplir"> No prometer plazos o garantías inviables</label>
+      <label class="opt"><input type="checkbox" name="q11_2" value="No criticar a otros profesionales para vender"> No criticar a otros profesionales para vender</label>
+    </div>
+
+    <div class="q" data-block="11. Ética y cumplimiento" data-id="11.3"
+         data-q="11.3 Confidencialidad de la estrategia resultante: quién verá el documento y qué datos no deben aparecer por escrito (protección de datos, precios de otros clientes…)">
+      <div class="q-title"><span class="qid">11.3</span>Confidencialidad del documento</div>
+      <label class="opt"><input type="checkbox" name="q11_3" value="No incluir precios de otros clientes ni datos de terceros"> No incluir precios de otros clientes ni datos de terceros</label>
+      <label class="opt"><input type="checkbox" name="q11_3" value="Ocultar mi identidad y la del interlocutor en el documento"> Ocultar identidades en el documento</label>
+      <label class="opt"><input type="checkbox" name="q11_3" value="El documento es solo para mí: no se compartirá"> Solo para mí: no se compartirá</label>
+      <label class="opt"><input type="checkbox" name="q11_3" value="Sin restricciones de confidencialidad"> Sin restricciones</label>
+    </div>
+
+    <div class="q extra" data-block="11. Ética y cumplimiento" data-id="11.4"
+         data-q="11.4 ¿Algo más sobre ética, seguros o cumplimiento que no se haya preguntado? (campo libre opcional)">
+      <div class="q-title"><span class="qid">11.4</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre ética y cumplimiento" placeholder="Seguros, garantías legales, protección de datos del cliente, cualquier compromiso de sostenibilidad…"></textarea>
+    </div>
+  </section>
+
+  <!-- ================= BLOQUE 12 (POST-NEGOCIACIÓN) ================= -->
+  <section class="card post-card">
+    <h2>Bloque 12 — Post-negociación (rellenar DESPUÉS de la reunión; opcional)</h2>
+    <p class="hint">Este bloque no se rellena antes: se rellena cuando la negociación ya ha terminado. Si el JSON generado contiene respuestas aquí, la IA analizará lo ocurrido en lugar de preparar la estrategia, y convertirá el cuestionario en un ciclo de aprendizaje.</p>
+
+    <div class="q" data-block="12. Post-negociación" data-id="12.1"
+         data-q="12.1 Resultado final de la negociación (cifra y estado)">
+      <div class="q-title"><span class="qid">12.1</span>Resultado final</div>
+      <div class="inline">
+        <div><label>Cifra final</label><input type="number" data-name="Cifra final acordada" data-unit="€" min="0" placeholder="5800"></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="opt"><input type="radio" name="q12_1" value="Acuerdo cerrado"> Acuerdo cerrado</label>
+        <label class="opt"><input type="radio" name="q12_1" value="Sin acuerdo: usé mi MAPAN y me retiré"> Sin acuerdo: usé mi MAPAN y me retiré</label>
+        <label class="opt"><input type="radio" name="q12_1" value="Pendiente: la negociación sigue abierta"> Pendiente: la negociación sigue abierta</label>
+      </div>
+    </div>
+
+    <div class="q" data-block="12. Post-negociación" data-id="12.2"
+         data-q="12.2 El resultado frente a los objetivos marcados en 3.1-3.3 (ideal / realista / mínimo): ¿dónde quedó?">
+      <div class="q-title"><span class="qid">12.2</span>Frente al objetivo</div>
+      <label class="opt"><input type="radio" name="q12_2" value="Mejor que el objetivo ideal"> Mejor que el objetivo ideal</label>
+      <label class="opt"><input type="radio" name="q12_2" value="En el objetivo ideal"> En el objetivo ideal</label>
+      <label class="opt"><input type="radio" name="q12_2" value="Entre el ideal y el realista"> Entre el ideal y el realista</label>
+      <label class="opt"><input type="radio" name="q12_2" value="En el objetivo realista"> En el objetivo realista</label>
+      <label class="opt"><input type="radio" name="q12_2" value="Entre el realista y el mínimo"> Entre el realista y el mínimo</label>
+      <label class="opt"><input type="radio" name="q12_2" value="En el mínimo o por debajo (no debí aceptar)"> En el mínimo o por debajo (no debí aceptar)</label>
+    </div>
+
+    <div class="q" data-block="12. Post-negociación" data-id="12.3"
+         data-q="12.3 Qué funcionó: argumentos, frases o decisiones que sirvieron">
+      <div class="q-title"><span class="qid">12.3</span>Qué funcionó</div>
+      <textarea data-name="Qué funcionó" placeholder="Ej.: el desglose en voz alta desactivó el «es una barbaridad»; la pausa de silencio funcionó; el paquete B fue el elegido…"></textarea>
+    </div>
+
+    <div class="q" data-block="12. Post-negociación" data-id="12.4"
+         data-q="12.4 Qué falló: dónde perdí valor (concesiones de más, sin contrapartida, mal momento, táctica que no vi…)">
+      <div class="q-title"><span class="qid">12.4</span>Qué falló</div>
+      <textarea data-name="Qué falló" placeholder="Ej.: regalé la primera bajada sin pedir nada; no pregunté su presupuesto; acepté el 50% a 60 días…"></textarea>
+    </div>
+
+    <div class="q" data-block="12. Post-negociación" data-id="12.5"
+         data-q="12.5 Lecciones y compromisos para la próxima negociación con esta u otra parte">
+      <div class="q-title"><span class="qid">12.5</span>Lecciones y compromisos</div>
+      <textarea data-name="Lecciones y compromisos" placeholder="Ej.: la próxima, preguntar fechas antes de dar precio; subir el ancla un 10%; no negociar por WhatsApp…"></textarea>
+    </div>
+
+    <div class="q extra" data-block="12. Post-negociación" data-id="12.6"
+         data-q="12.6 ¿Algo más sobre cómo acabó? (campo libre opcional)">
+      <div class="q-title"><span class="qid">12.6</span>¿Algo más de este bloque? (opcional)</div>
+      <textarea data-name="Añadido libre sobre la post-negociación" placeholder="Cómo quedó la relación, si hay segunda fase, si volvió a regatear después…"></textarea>
+    </div>
+  </section>
+
+  </form>
+
+  <section class="card" id="output">
+    <h2>JSON generado</h2>
+    <pre id="json-out"></pre>
+    <div class="out-actions">
+      <button class="btn primary" id="btn-copy">Copiar JSON</button>
+      <button class="btn" id="btn-download">Descargar .json</button>
+      <span class="note-ok" id="note-ok">Copiado</span>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  const form = document.getElementById('cuestionario');
+  const bar = document.getElementById('bar');
+  const ptext = document.getElementById('progress-text');
+  const output = document.getElementById('output');
+  const jsonOut = document.getElementById('json-out');
+
+  // ---- autoclick del "Otro" al escribir en su campo de texto ----
+  form.querySelectorAll('input.other-text').forEach(t => {
+    t.addEventListener('input', () => {
+      const box = t.closest('label')?.querySelector('input[type=radio],input[type=checkbox]');
+      if (box && t.value.trim() !== '') box.checked = true;
+    });
+  });
+
+  // ---- sliders muestran su valor y se actualizan al moverlos ----
+  form.querySelectorAll('input[type=range]').forEach(r => {
+    const out = r.parentElement.querySelector('output.rv');
+    if (out) out.textContent = r.value;
+    r.addEventListener('input', () => { if (out) out.textContent = r.value; });
+  });
+
+  // ---- extraer respuesta de un bloque .q ----
+  function answerFor(q){
+    const parts = [];
+    q.querySelectorAll('input[type=radio]:checked, input[type=checkbox]:checked').forEach(r => {
+      let t = r.value;
+      const ot = r.closest('label')?.querySelector('input.other-text');
+      if (ot && ot.value.trim()) t += ' — detalle: ' + ot.value.trim();
+      parts.push(t);
+    });
+    q.querySelectorAll('input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel]')
+      .forEach(i => {
+        if (i.classList.contains('other-text')) return;
+        if (i.value === '' || i.value === null) return;
+        const unit = i.dataset.unit ? ' ' + i.dataset.unit : '';
+        parts.push((i.dataset.name ? i.dataset.name + ': ' : '') + i.value + unit);
+      });
+    q.querySelectorAll('input[type=range]').forEach(i => {
+      if (i.dataset.name) parts.push(i.dataset.name + ': ' + i.value + ' sobre 10');
+    });
+    q.querySelectorAll('select').forEach(s => {
+      if (!s.value) return;
+      parts.push((s.dataset.name ? s.dataset.name + ': ' : '') + s.options[s.selectedIndex].text);
+    });
+    q.querySelectorAll('textarea').forEach(t => {
+      if (!t.value.trim()) return;
+      parts.push((t.dataset.name ? t.dataset.name + ': ' : '') + t.value.trim());
+    });
+    return parts.length ? parts.join(' | ') : 'Sin respuesta';
+  }
+
+  function collect(){
+    return [...form.querySelectorAll('.q')].map(q => ({
+      bloque: q.dataset.block,
+      id: q.dataset.id,
+      pregunta: q.dataset.q,
+      respuesta: answerFor(q)
+    }));
+  }
+
+  // ---- progreso ----
+  function updateProgress(){
+    const qs = form.querySelectorAll('.q');
+    let done = 0;
+    qs.forEach(q => { if (answerFor(q) !== 'Sin respuesta') done++; });
+    const pct = qs.length ? Math.round(done / qs.length * 100) : 0;
+    bar.style.width = pct + '%';
+    ptext.textContent = done + ' / ' + qs.length + ' respondidas';
+  }
+  form.addEventListener('input', updateProgress);
+  updateProgress();
+
+  // ---- generar el JSON autodescriptivo ----
+  function buildJSON(){
+    const respuestas = collect();
+    const sinResponder = respuestas.filter(r => r.respuesta === 'Sin respuesta').length;
+    return {
+      documento: "Cuestionario de preparación de una negociación — respuestas",
+      asunto: "Negociación del precio o de las condiciones de un trabajo, servicio, producto o acuerdo (sector indicado en la pregunta 0.5)",
+      fecha_de_generacion: new Date().toLocaleString('es-ES'),
+      contexto_para_la_ia: "Las 'respuestas' de este documento han sido recogidas con un cuestionario de preparación de negociación alineado con el método Harvard (Fisher y Ury) y con técnicas avanzadas de persuasión, negociación colaborativa, gestión de tácticas difíciles y negociación digital. Cada entrada contiene el bloque temático, la pregunta completa y la respuesta dada; las preguntas ya contienen toda la explicación necesaria: léelas tal cual. Varios bloques terminan con un campo libre opcional de información adicional. El bloque 12 (Post-negociación) solo se rellena una vez terminada la reunión: si contiene respuestas, el objetivo del documento pasa a ser analizar lo ocurrido y extraer lecciones. 'Sin respuesta' significa que no se facilitó ese dato: la estrategia debe señalarlo como dato a confirmar, no darlo por supuesto en silencio. El sector o gremio de quien responde figura en la pregunta 0.5 y el objeto de la negociación en la 0.6: la estrategia debe adaptar a ese sector toda su terminología (tipo de trabajo, materiales, trámites, documentos y garantías).",
+      instrucciones_para_la_ia: "Actúa como consultor experto en negociación formado en el método Harvard (Fisher y Ury). ANTES DE EMPEZAR: si faltan datos críticos (las cifras ya comunicadas de 8.1, los costes reales de 2.4 o los presupuestos rivales de 5.7), abre el documento con un apartado PREGUNTAS PREVIAS: 3-5 preguntas concretas al usuario; aun así continúa la estrategia con supuestos marcados. Con base exclusivamente en las 'respuestas' de este documento, redacta la estrategia COMPLETA y PERSONALIZADA para negociar el precio o las condiciones de la operación descrita, y entrégala en forma de PDF bien estructurado, organizado en tres tiempos (ANTES: preparación / DURANTE: guion y tácticas / DESPUÉS: cierre, formalización y seguimiento), con dos partes claramente separadas: A) un RESUMEN DE UNA PÁGINA para llevar a la reunión (objetivos ideal/realista/mínimo, punto de ruptura, MAPAN en una línea, primera cifra a decir, concesiones autorizadas y frases clave) y B) la estrategia completa. ADAPTA PRIMERO TODO AL SECTOR (pregunta 0.5), AL OBJETO DE LA NEGOCIACIÓN (0.6) Y AL ROL (2.1): usa en toda la estrategia la terminología, los documentos y los trámites propios de ese gremio; si quien responde es quien vende (profesional, autónomo o empresa), la estrategia persigue sostener el precio alto; si es quien compra (cliente particular o empresa), persigue reducirlo (reinterpretando en consecuencia objetivos, argumentos, anclas y concesiones). El PDF debe incluir, como mínimo: 1) Resumen de la situación y del equilibrio de poder: necesidad de cerrar y urgencia de cada parte según las escalas 0-10 (distinguiendo urgencia real de urgencia inducida o táctica), alternativas disponibles, coste del no acuerdo para cada parte (4.8), fuentes de poder propias (4.10) y estado de la negociación (rondas ya habladas y cifras ya dichas en 8.1, con las reacciones que provocaron). 2) Objetivos: ideal, realista y mínimo, punto de ruptura y líneas rojas, con los importes facilitados; comprueba que el objetivo mínimo no sea peor que el MAPAN y avísalo expresamente si lo es. 3) MAPAN/BATNA propio y estimado de la otra parte, acciones concretas para fortalecer el propio ANTES de la reunión (4.6), su efecto sobre el poder negociador y el plan de retirada según el escalado de 4.11. 4) Coste real de la operación recalculado con el desglose de 2.4 (materiales o productos + horas + permisos y trámites + otros) y estimación razonada de la ZOPA con cifras concretas, presentada como tabla visual con el rango mínimo-máximo de cada parte y la zona de acuerdo resaltada, partiendo de las cifras ya comunicadas y del presupuesto rival conocido (5.7); si faltan datos, asume valores razonables de mercado español y márcalos como SUPUESTOS. 5) Análisis de la otra parte: quién decide, tipo de negociador y estilo de comunicación (Relacionador/Persuasivo/Analítico/Directivo) con cómo adaptar el mensaje a ese estilo contrastándolo con el estilo propio declarado (2.8), intereses visibles y ocultos, relación previa, bitácora e historial con esta parte (5.9-5.10), terceros que influyen (5.11), jerarquía de intereses de la otra parte (5.12: construye los argumentos en ese orden), red de contactos en juego (5.13), señales de compra detectadas (5.14), presupuesto máximo estimado del otro (5.15) y factor intercultural (5.16) si aplica, y valor de la relación futura (5.8) como factor para decidir cuánto ceder hoy. 6) Argumentos racionales y de valor con evidencias, criterios objetivos externos que legitimen el precio (7.6) y palancas de persuasión ética disponibles (7.7: prueba social, autoridad, reciprocidad, escasez real, compromiso y coherencia, simpatía), sin usar nunca engaño ni escasez falsa. 7) Guion de apertura: momento, hora y territorio elegidos (0.7), puntos en común iniciales, gestión del ancla según 8.1 y 8.2 (quién debe decir la primera cifra y por qué), preguntas abiertas para que la otra parte revele presupuesto total, otros presupuestos y urgencia (apoyándose en la información asimétrica de 4.9), las peticiones propias de 3.7 planteadas como apertura del intercambio, y técnicas de escucha activa (reformular: «si le he entendido bien…» y confirmar los acuerdos); emplea lenguaje positivo («puedo mantener el precio si…» en lugar de «no puedo bajar») y evita términos ambiguos («pronto», «un poco más», «razonable»). 8) Plan de concesiones con escalones DECRECIENTES (8.5): cada concesión etiquetada con su valor y condicionada a una contraprestación (nunca gratuita), usando la matriz de asimetría (6.6) para los trueques marginales, y guardando una concesión pequeña para el momento de la firma. 9) Ofertas MESO: 2-3 paquetes equivalentes combinando precio, alcance, plazos y pago (base 10.1), explicando qué revela la opción que elija la otra parte. 10) Escenarios favorable/probable/adverso (9.1) con respuesta preparada para cada uno, probabilidad estimada y valor esperado (probabilidad × resultado) de cada escenario, y plan B si la reunión se atasca, distinguiéndolo del MAPAN. 11) Tácticas difíciles que podría usar la otra parte (9.2) con su contramedida concreta: reconocer y nombrar la táctica sin agresividad, pausa sin responder con emoción, pregunta abierta que desenmascare faroles («¿qué hace que esta sea la única opción posible?») y recurrir al MAPAN como escudo; añade además un cuadro de RED FLAGS con las señales de alerta a vigilar en la otra parte durante la reunión (precios ya comunicados que «desaparecen», plazos que se alargan, cambios de interlocutor). 12) Objeciones más probables con respuestas preparadas (7.3-7.4), distinguiendo objeción de rechazo, e incluye además un BANCO DE FRASES literales: 10-15 frases exactas listas para usar (reformular, hacer una pausa, decir no sin romper la relación, pedir contrapartida y cerrar), respetando la exclusión de frases hechas de 8.4 si está marcada. 13) Plan según el canal (0.3 y 10.4): si es presencial, señales no verbales de interés/duda/rechazo a vigilar; si es telefónico o videollamada, explicitar y confirmar todo; si es escrita o por mensajería, plazos de respuesta comprometidos y cumplidos, no negociar cifras por WhatsApp, resúmenes periódicos de lo acordado y confirmación por email. 14) Formalización y seguimiento (10.2-10.3): cómo documentar el acuerdo (presupuesto firmado, contrato, email), validez temporal del presupuesto, hitos y plan de seguimiento si no se cierra, proponiendo un calendario concreto con fechas (día +2, día +7 y día +15) según lo marcado en 10.3. 15) Preparación emocional (2.7): técnicas concretas según la confianza y el nerviosismo declarados (pausa, reformulación neutra, distanciamiento: «¿qué le diría a otro en mi situación?»), incluido no rellenar el silencio con concesiones; antídotos concretos para los sesgos declarados (2.11) y para el disparador emocional conocido (2.7); el guion del role-play si hay ensayo previsto (2.10); y el reparto de roles si se va acompañado (2.9). 16) Cumplimiento y ética (11.1-11.2): advertir si la operación podría quedar sin factura correcta y respetar los límites éticos marcados, además de las restricciones de confidencialidad de 11.3 (qué datos no deben aparecer en el documento). 17) Errores concretos a evitar en este caso: negociar con quien no decide, revelar el límite demasiado pronto, aceptar expresiones ambiguas, prometer condiciones inviables, confundir objeción con rechazo, no documentar el acuerdo, descuidar el seguimiento y ceder sin estrategia. 18) CHECKLIST PREVIO A LA REUNIÓN: lista de datos que deben confirmarse antes de sentarse a negociar, empezando por las preguntas clave sin responder (en especial las cifras ya comunicadas de 8.1, los costes reales de 2.4 y los presupuestos de la competencia de 5.7), con cómo conseguir cada dato. 19) Plantilla final de resumen de preparación, lista para rellenar antes de la reunión. Si el bloque 12 (Post-negociación) contiene respuestas, cambia el objetivo del documento: analiza lo ocurrido frente a los objetivos 3.1-3.3, evalúa aciertos y errores (12.3-12.4) y propón un plan de aprendizaje con compromisos concretos (12.5), sin rehacer la estrategia previa. Respeta las exclusiones de estilo del bloque 8, usa un tono práctico y directo, español de España y cifras en euros. No inventes datos del usuario: lo que falte, indícalo como supuesto razonado y márcalo como tal.",
+      estadisticas: {
+        preguntas_totales: respuestas.length,
+        respondidas: respuestas.length - sinResponder,
+        sin_responder: sinResponder
+      },
+      respuestas: respuestas
+    };
+  }
+
+  document.getElementById('btn-generate').addEventListener('click', () => {
+    let data = buildJSON();
+    if (typeof negPostProcess === 'function') data = negPostProcess(data);
+    jsonOut.textContent = JSON.stringify(data, null, 2);
+    output.classList.add('show');
+    output.scrollIntoView({behavior:'smooth'});
+  });
+  form.addEventListener('submit', e => { e.preventDefault(); });
+
+  // ---- copiar ----
+  document.getElementById('btn-copy').addEventListener('click', async () => {
+    const txt = jsonOut.textContent;
+    try { await navigator.clipboard.writeText(txt); }
+    catch(_){
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    const n = document.getElementById('note-ok');
+    n.classList.add('show'); setTimeout(()=>n.classList.remove('show'), 1500);
+  });
+
+  // ---- descargar ----
+  document.getElementById('btn-download').addEventListener('click', () => {
+    const blob = new Blob([jsonOut.textContent], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'respuestas_negociacion.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+})();
+</script>
+
+<script>
+/* ============================================================
+   MÓDULO 2 — paquete de mejoras del formulario universal
+   Autoguardado, archivo, enlace compartible, modo exprés,
+   preguntas condicionales, avisos cruzados, calculadora de
+   costes, ejemplo relleno, glosario, Markdown, envío directo
+   a la IA, recordatorio .ics, estadísticas locales, i18n,
+   tema claro/oscuro y tamaño de letra. Todo funciona en local.
+   ============================================================ */
+(function(){
+  'use strict';
+  const form = document.getElementById('cuestionario');
+  const bar  = document.getElementById('bar');
+  const ptext = document.getElementById('progress-text');
+  const LS_STATE='negU_state_v2', LS_PREFS='negU_prefs_v2', LS_STATS='negU_stats_v2';
+
+  const $  = (s,c)=> (c||document).querySelector(s);
+  const $$ = (s,c)=> Array.from((c||document).querySelectorAll(s));
+  const qById = id => form.querySelector('.q[data-id="'+id+'"]');
+
+  // ---------- preferencias ----------
+  function getPrefs(){ try{ return JSON.parse(localStorage.getItem(LS_PREFS)) || {}; }catch(_){ return {}; } }
+  function setPref(k,v){ const p=getPrefs(); p[k]=v; try{ localStorage.setItem(LS_PREFS, JSON.stringify(p)); }catch(_){} }
+  const PREFS = getPrefs();
+  let LANG = PREFS.lang || 'es';
+  let CURRENCY = PREFS.currency || '€';
+
+  function flash(btn, msg){
+    const prev = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(()=>{ btn.textContent = prev; }, 1800);
+  }
+  async function copyText(txt){
+    try { await navigator.clipboard.writeText(txt); return true; }
+    catch(_){
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      let ok = false; try{ ok = document.execCommand('copy'); }catch(e){}
+      ta.remove(); return ok;
+    }
+  }
+
+  // ---------- 9. moneda y formato de miles en campos de importe ----------
+  function parseMoney(v){
+    if (v == null) return NaN;
+    let s = String(v).trim().replace(/[^\d.,-]/g,'');
+    if (!s) return NaN;
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+    else if (s.includes(',')) s = s.replace(/,(\d{1,2})$/,'.$1').replace(/,/g,'');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,'');
+    return parseFloat(s);
+  }
+  function fmtMoney(n){
+    if (isNaN(n)) return '';
+    return new Intl.NumberFormat('es-ES',{maximumFractionDigits:2}).format(n);
+  }
+  const moneyInputs = $$('input[type=number][data-unit]', form);
+  moneyInputs.forEach(i => {
+    i.setAttribute('inputmode','decimal');
+    i.type = 'text';
+    i.dataset.money = '1';
+    if (CURRENCY !== '€' && i.dataset.unit === '€') i.dataset.unit = CURRENCY;
+    i.addEventListener('blur', () => {
+      const n = parseMoney(i.value);
+      if (!isNaN(n)) { i.value = fmtMoney(n); i.dispatchEvent(new Event('input',{bubbles:true})); }
+    });
+  });
+  function setCurrency(c){
+    CURRENCY = c; setPref('currency', c);
+    moneyInputs.forEach(i => { i.dataset.unit = c; });
+    refreshAvisos();
+  }
+  const selCur = $('#sel-currency');
+  if (selCur){ selCur.value = CURRENCY; selCur.addEventListener('change', ()=> setCurrency(selCur.value)); }
+
+  // ---------- 5. preguntas condicionales según el objeto (0.6) ----------
+  function objetoNegociacion(){
+    const sel = qById('0.6') ? qById('0.6').querySelector('select') : null;
+    return (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text.toLowerCase() : '';
+  }
+  function applyConditionals(){
+    const obj = objetoNegociacion();
+    $$('.q[data-hideon]', form).forEach(q => {
+      if (!obj){ q.hidden = false; return; }
+      const toks = q.dataset.hideon.split('|').map(t=>t.trim().toLowerCase()).filter(Boolean);
+      q.hidden = toks.some(t => obj.includes(t));
+    });
+  }
+
+  // ---------- 4. modo exprés ----------
+  const btnExpress = $('#btn-express');
+  function applyExpress(on){
+    document.body.classList.toggle('express', !!on);
+    setPref('express', !!on);
+    $$('.card', form).forEach(sec => {
+      sec.style.display = (on && !sec.querySelector('.q[data-express]')) ? 'none' : '';
+    });
+    refreshProgress();
+  }
+  if (btnExpress) btnExpress.addEventListener('click', ()=> applyExpress(!document.body.classList.contains('express')));
+
+  // ---------- 1/6. progreso visible y chips por bloque ----------
+  function isAnswered(q){
+    if (q.querySelector('input:checked')) return true;
+    const ins = $$('input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel]', q);
+    if (ins.some(i => !i.classList.contains('other-text') && String(i.value).trim())) return true;
+    if ($$('select', q).some(s => s.value)) return true;
+    if ($$('textarea', q).some(t => t.value.trim())) return true;
+    if (q.querySelector('input[type=range][data-name]')) return true;
+    return false;
+  }
+  function isVisibleQ(q){
+    if (q.hidden) return false;
+    const sec = q.closest('.card');
+    if (sec && sec.style.display === 'none') return false;
+    if (document.body.classList.contains('express') && !q.dataset.express) return false;
+    return true;
+  }
+  function refreshProgress(){
+    const vis = $$('.q', form).filter(isVisibleQ);
+    const done = vis.filter(isAnswered).length;
+    const pct = vis.length ? Math.round(done / vis.length * 100) : 0;
+    bar.style.width = pct + '%';
+    ptext.textContent = done + ' / ' + vis.length + (LANG === 'en' ? ' answered' : ' respondidas');
+  }
+  function clearQuestions(qs){
+    qs.forEach(q => {
+      $$('input[type=radio],input[type=checkbox]', q).forEach(i => { i.checked = false; });
+      $$('input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel]', q)
+        .forEach(i => { if (!i.classList.contains('other-text')) i.value = ''; });
+      $$('input.other-text', q).forEach(i => { i.value = ''; });
+      $$('select', q).forEach(s => { s.value = ''; });
+      $$('textarea', q).forEach(t => { t.value = ''; });
+      $$('input[type=range]', q).forEach(r => {
+        r.value = 5;
+        const o = r.parentElement.querySelector('output.rv');
+        if (o) o.textContent = '5';
+      });
+    });
+  }
+  // chips y botón de vaciado por bloque
+  $$('.card', form).forEach(sec => {
+    const h2 = sec.querySelector('h2');
+    if (!h2) return;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    h2.appendChild(chip);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn mini';
+    btn.textContent = LANG === 'en' ? 'Clear block' : 'Vaciar bloque';
+    btn.addEventListener('click', ()=> {
+      clearQuestions($$('.q', sec));
+      form.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+    h2.appendChild(btn);
+  });
+  function refreshChips(){
+    $$('.card', form).forEach(sec => {
+      const chip = sec.querySelector('h2 .chip');
+      if (!chip) return;
+      const qs = $$('.q', sec).filter(isVisibleQ);
+      if (!qs.length) return;
+      const done = qs.filter(isAnswered).length;
+      chip.textContent = done + ' / ' + qs.length;
+      chip.classList.toggle('ok', done === qs.length && done > 0);
+      chip.classList.toggle('warn', done > 0 && done < qs.length);
+    });
+  }
+
+  // ---------- 13. validaciones cruzadas en vivo ----------
+  const avisosEl = document.createElement('div');
+  avisosEl.id = 'avisos';
+  const intro = $('.intro');
+  if (intro) intro.after(avisosEl);
+  function fieldVal(qid, name){
+    const el = qById(qid) ? qById(qid).querySelector('[data-name="'+name+'"]') : null;
+    return el ? String(el.value).trim() : '';
+  }
+  function radioVal(name){
+    const r = form.querySelector('input[name="'+name+'"]:checked');
+    return r ? r.value : '';
+  }
+  const F = parseMoney;
+  function computeAvisos(){
+    const list = [];
+    const rol = radioVal('q2_1');
+    const esCompra = /compro|cliente/i.test(rol);
+    const ideal = F(fieldVal('3.1','Objetivo ideal'));
+    const real  = F(fieldVal('3.2','Objetivo realista'));
+    const minim = F(fieldVal('3.3','Objetivo mínimo'));
+    const rupt  = F(fieldVal('3.4','Punto de ruptura'));
+    const mapan = F(fieldVal('4.2','Valor de la alternativa'));
+    const wtp   = F(fieldVal('5.15','Presupuesto máximo real del otro'));
+    const dicha = F(fieldVal('8.1','Mi cifra ya comunicada'));
+    const bajada= F(fieldVal('8.5','Bajada máxima total aceptada'));
+    const ini   = fieldVal('6.3','Fecha de inicio');
+    const fin   = fieldVal('6.3','Fecha de finalización');
+    const ok = v => !isNaN(v);
+    if (ok(ideal) && ok(real) && ok(minim)) {
+      const bien = esCompra ? (ideal <= real && real <= minim) : (ideal >= real && real >= minim);
+      if (!bien) list.push(esCompra
+        ? 'Como compras, el orden se invierte: el ideal debe ser el más bajo y el mínimo el más alto (ideal ≤ realista ≤ mínimo). Revisa 3.1-3.3.'
+        : 'Revisa 3.1-3.3: debe cumplirse ideal ≥ realista ≥ mínimo y ahora no se cumple.');
+    }
+    if (!esCompra && ok(minim) && ok(mapan) && minim < mapan)
+      list.push('Regla del curso: tu objetivo mínimo (' + fmtMoney(minim) + ') es peor que tu MAPAN (' + fmtMoney(mapan) + '). Por debajo de la alternativa, más vale retirarse: sube el mínimo o refuerza la alternativa (4.6).');
+    if (esCompra && ok(minim) && ok(mapan) && minim > mapan)
+      list.push('Como compras: aceptarías pagar hasta ' + fmtMoney(minim) + ' cuando tu alternativa vale ' + fmtMoney(mapan) + '. Revisa 3.3 frente a 4.2.');
+    if (!esCompra && ok(rupt) && ok(minim) && rupt > minim)
+      list.push('El punto de ruptura (' + fmtMoney(rupt) + ') está por encima de tu objetivo mínimo (' + fmtMoney(minim) + '): te retirarías antes de llegar a tu propio mínimo. Revisa 3.3 y 3.4.');
+    if (!esCompra && ok(wtp) && ok(minim) && wtp < minim)
+      list.push('El presupuesto máximo estimado del otro (' + fmtMoney(wtp) + ') queda por debajo de tu mínimo (' + fmtMoney(minim) + '): no hay ZOPA con estas cifras. O la estimación de 5.15 es errónea o hay que cambiar variables (alcance, plazos, forma de pago).');
+    if (!esCompra && ok(dicha) && ok(minim)) {
+      const suelo = dicha - (ok(bajada) ? bajada : 0);
+      if (suelo < minim)
+        list.push('Tu cifra ya comunicada (' + fmtMoney(dicha) + ') menos la bajada máxima (' + (ok(bajada)?fmtMoney(bajada):'0') + ') baja hasta ' + fmtMoney(suelo) + ', por debajo del objetivo mínimo (' + fmtMoney(minim) + '). Ajusta 8.5 o revisa 3.3.');
+    }
+    if (ini && fin && ini > fin)
+      list.push('En 6.3 la fecha de fin (' + fin + ') es anterior a la de inicio (' + ini + ').');
+    return list;
+  }
+  function refreshAvisos(){
+    const list = computeAvisos();
+    avisosEl.innerHTML = '';
+    if (!list.length){ avisosEl.style.display = 'none'; return; }
+    avisosEl.style.display = 'block';
+    const h = document.createElement('p');
+    h.innerHTML = '<b>' + (LANG==='en'?'Form warnings:':'Avisos del formulario:') + '</b> ' +
+      (LANG==='en'?'fix them so the strategy does not inherit the error.':'corrígelos para que la estrategia no arrastre el error.');
+    avisosEl.appendChild(h);
+    list.forEach(t => { const p = document.createElement('p'); p.textContent = '• ' + t; avisosEl.appendChild(p); });
+  }
+
+  // ---------- 14. calculadora de coste y precio mínimo en 2.4 ----------
+  const q24 = qById('2.4');
+  if (q24) {
+    const row = document.createElement('div');
+    row.className = 'calc-row';
+    const btnCalc = document.createElement('button');
+    btnCalc.type = 'button'; btnCalc.className = 'btn mini';
+    btnCalc.textContent = LANG === 'en' ? 'Calculate cost & minimum price' : 'Calcular coste y precio mínimo';
+    const out = document.createElement('input');
+    out.type = 'text'; out.readOnly = true;
+    out.dataset.name = 'Coste total y precio mínimo sugerido (calculado)';
+    out.placeholder = 'Coste total = materiales + precio/hora × horas + trámites + otros · precio mínimo sugerido = coste × 1,2';
+    row.appendChild(btnCalc); row.appendChild(out);
+    q24.appendChild(row);
+    btnCalc.addEventListener('click', ()=>{
+      const g = n => (isNaN(n) ? 0 : n);
+      const m  = g(F(fieldVal('2.4','Coste de materiales o productos estimado')));
+      const ph = g(F(fieldVal('2.4','Precio por hora o jornada')));
+      const h  = g(F(fieldVal('2.4','Horas totales de trabajo estimadas')));
+      const pt = g(F(fieldVal('2.4','Coste de permisos, licencias y trámites')));
+      const ot = g(F(fieldVal('2.4','Otros costes (desplazamiento, ayudante, subcontratación, alquiler…)')));
+      const total = m + ph * h + pt + ot;
+      out.value = 'Coste total: ' + fmtMoney(total) + ' ' + CURRENCY +
+        ' · Precio mínimo sugerido (margen 20 %): ' + fmtMoney(Math.round(total * 1.2)) + ' ' + CURRENCY;
+      out.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+  }
+
+  // ---------- 1/2/3. serializar, autoguardar, archivo y enlace ----------
+  function serializeState(){
+    const st = {};
+    $$('.q', form).forEach(q => {
+      const qid = q.dataset.id;
+      const groups = {};
+      $$('input[type=radio],input[type=checkbox]', q).forEach(i => {
+        (groups[i.name] = groups[i.name] || []).push(i);
+      });
+      Object.keys(groups).forEach(n => {
+        const vals = groups[n].filter(i => i.checked).map(i => i.value);
+        if (vals.length) st[qid + '#' + n] = vals;
+      });
+      const oths = $$('input.other-text', q);
+      oths.forEach((o, ix) => { if (o.value.trim()) st[qid + '|otro' + (oths.length > 1 ? ix : '')] = o.value.trim(); });
+      $$('input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel]', q).forEach(i => {
+        if (i.classList.contains('other-text') || i.readOnly) return;
+        if (String(i.value).trim() !== '') st[qid + '|' + (i.dataset.name || 'campo')] = i.value;
+      });
+      $$('input[type=range]', q).forEach(i => { st[qid + '|' + (i.dataset.name || 'rango')] = i.value; });
+      $$('select', q).forEach((s, ix) => { if (s.value) st[qid + '|' + (s.dataset.name || ('sel' + ix))] = s.value; });
+      $$('textarea', q).forEach(t => { if (t.value.trim()) st[qid + '|' + (t.dataset.name || 'texto')] = t.value.trim(); });
+    });
+    return st;
+  }
+  function applyState(st){
+    if (!st || typeof st !== 'object') return;
+    clearQuestions($$('.q', form));
+    Object.keys(st).forEach(k => {
+      const esGrupo = k.indexOf('#') > -1;
+      const sep = esGrupo ? '#' : '|';
+      const qid = k.slice(0, k.indexOf(sep));
+      const key = k.slice(k.indexOf(sep) + 1);
+      const q = qById(qid);
+      if (!q) return;
+      if (esGrupo) {
+        const vals = Array.isArray(st[k]) ? st[k] : [st[k]];
+        $$('input[name="' + key + '"]', q).forEach(i => { i.checked = vals.includes(i.value); });
+      } else if (key === 'otro' || /^otro\d+$/.test(key)) {
+        const ix = /^otro(\d+)$/.test(key) ? parseInt(key.slice(4), 10) : 0;
+        const o = $$('input.other-text', q)[ix];
+        if (o) o.value = st[k];
+      } else if (/^sel\d+$/.test(key)) {
+        const s = $$('select', q)[parseInt(key.slice(3), 10)];
+        if (s) s.value = st[k];
+      } else {
+        const el = q.querySelector('[data-name="' + key + '"]');
+        if (el) {
+          el.value = st[k];
+          if (el.type === 'range') {
+            const o = el.parentElement.querySelector('output.rv');
+            if (o) o.textContent = el.value;
+          }
+        }
+      }
+    });
+    $$('input[data-money]', form).forEach(i => {
+      const n = parseMoney(i.value);
+      if (String(i.value).trim() !== '' && !isNaN(n)) i.value = fmtMoney(n);
+    });
+    applyConditionals();
+    form.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  // autoguardado con retardo
+  let saveT = null;
+  form.addEventListener('input', ()=>{
+    clearTimeout(saveT);
+    saveT = setTimeout(()=>{
+      try { localStorage.setItem(LS_STATE, JSON.stringify(serializeState())); }catch(_){}
+    }, 500);
+  });
+  // enlace compartible
+  const btnShare = $('#btn-share');
+  if (btnShare) btnShare.addEventListener('click', async ()=>{
+    const enc = btoa(unescape(encodeURIComponent(JSON.stringify(serializeState()))));
+    const url = location.href.split('#')[0] + '#d=' + enc;
+    const ok = await copyText(url);
+    flash(btnShare, ok ? (LANG==='en'?'Link copied':'Enlace copiado') : (LANG==='en'?'Copy failed':'No se pudo copiar'));
+  });
+  function loadFromHash(){
+    const m = location.hash.match(/^#d=(.+)$/);
+    if (m) {
+      try { applyState(JSON.parse(decodeURIComponent(escape(atob(m[1]))))); return true; }catch(_){}
+    }
+    return false;
+  }
+  function restoreLocal(){
+    let st = null;
+    try { st = JSON.parse(localStorage.getItem(LS_STATE)); }catch(_){}
+    if (st && Object.keys(st).length) {
+      applyState(st);
+      const rn = $('#restored-note');
+      if (rn) rn.style.display = 'block';
+    }
+  }
+  { const rn = $('#restored-note'); if (rn) rn.style.display = 'none'; }
+  // guardar / cargar archivo
+  const btnSave = $('#btn-save-file');
+  if (btnSave) btnSave.addEventListener('click', ()=>{
+    const obj = { documento:'Cuestionario de negociación universal — respuestas guardadas', version:'2.0', fecha:new Date().toISOString(), estado:serializeState() };
+    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'respuestas_negociacion.json'; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  const fileLoad = $('#file-load');
+  if (fileLoad) fileLoad.addEventListener('change', ()=>{
+    const f = fileLoad.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      try {
+        const obj = JSON.parse(rd.result);
+        applyState(obj.estado || obj);
+      } catch(_){
+        alert(LANG==='en' ? 'That file is not a valid saved questionnaire.' : 'Ese archivo no es un cuestionario guardado válido.');
+      }
+      fileLoad.value = '';
+    };
+    rd.readAsText(f);
+  });
+
+  // ---------- 7. ejemplo relleno (fontanero) ----------
+  const EJEMPLO = {
+    '0.1|Parte propio': 'Miguel (fontanero)',
+    '0.3#q0_3': ['Presencial (reunión cara a cara)'],
+    '0.5|Sector o gremio': 'Fontanería y calefacción',
+    '0.6|Objeto de la negociación': 'El precio de un trabajo o servicio puntual (presupuesto)',
+    '2.1#q2_1': ['Soy quien vende (profesional, autónomo o empresa): quiero cobrar más'],
+    '2.4|Coste de materiales o productos estimado': '3.500',
+    '2.4|Precio por hora o jornada': '30',
+    '2.4|Horas totales de trabajo estimadas': '64',
+    '2.4|Coste de permisos, licencias y trámites': '250',
+    '2.4|Otros costes (desplazamiento, ayudante, subcontratación, alquiler…)': '150',
+    '2.7|Confianza propia (0-10)': '7',
+    '3.1|Objetivo ideal': '6.800',
+    '3.2|Objetivo realista': '6.200',
+    '3.3|Objetivo mínimo': '5.700',
+    '3.4|Punto de ruptura': '5.400',
+    '4.1#q4_1': ['Otros encargos en cartera con fecha cerrada'],
+    '4.2|Valor de la alternativa': '5.600',
+    '5.7#q5_7': ['Sí, y conozco las cifras'],
+    '5.7|Importe del presupuesto competidor más barato conocido': '5.900',
+    '5.15|Presupuesto máximo real del otro': '7.000',
+    '8.1#q8_1': ['Yo ya he dado mi precio'],
+    '8.1|Mi cifra ya comunicada': '6.500',
+    '8.5|Bajada máxima total aceptada': '500',
+    '8.5|Número máximo de concesiones': '2'
+  };
+  const btnExample = $('#btn-example');
+  if (btnExample) btnExample.addEventListener('click', ()=>{
+    const actual = serializeState();
+    if (Object.keys(actual).length &&
+        !confirm(LANG==='en' ? 'Loading the example replaces your current answers. Continue?' : 'Cargar el ejemplo sustituirá tus respuestas actuales. ¿Continuar?')) return;
+    applyState(EJEMPLO);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // ---------- 8. tooltips de jerga + glosario ----------
+  const GLOS = {
+    'MAPAN': 'Mejor Alternativa Posible Acordada con No (BATNA): lo que harás si no hay acuerdo. Es tu verdadera fuente de poder.',
+    'ZOPA': 'Zona de Posible Acuerdo: franja entre lo máximo que pagaría el otro y lo mínimo que aceptarías tú. Si no existe, no hay trato sin cambiar variables.',
+    'MESO': 'Oferta Múltiple Equivalente Simultánea: presentar 2-3 paquetes a la vez, todos aceptables para ti; la opción elegida revela las prioridades del otro.',
+    'ancla': 'Primer número dicho en la mesa: arrastra toda la negociación hacia él (efecto anclaje).',
+    'Punto de ruptura': 'Cifra o condición a partir de la cual te levantas y te vas sin acuerdo.',
+    'Líneas rojas': 'Condiciones que no aceptarás pase lo que pase (ética, seguridad, plazos, precio mínimo).',
+    'Coste hundido': 'Lo ya invertido y no recuperable; no debe condicionar la decisión («ya llevo tres reuniones…»).'
+  };
+  Object.keys(GLOS).forEach(term => {
+    const title = $$('.q-title', form).find(t => t.textContent.toLowerCase().includes(term.toLowerCase()) && !t.querySelector('.tt'));
+    if (title) {
+      const s = document.createElement('span');
+      s.className = 'tt'; s.dataset.tip = GLOS[term]; s.textContent = '?';
+      title.appendChild(s);
+    }
+  });
+  const glos = document.createElement('details');
+  glos.className = 'glosario';
+  glos.innerHTML = '<summary>' + (LANG==='en' ? 'Glossary (jargon of the course in one line)' : 'Glosario (la jerga del curso, en una línea cada término)') + '</summary><dl>' +
+    Object.keys(GLOS).map(k => '<dt>' + k + '</dt><dd>' + GLOS[k] + '</dd>').join('') + '</dl>';
+  const statsPanel = document.createElement('div');
+  statsPanel.id = 'stats-panel';
+  statsPanel.style.display = 'none';
+  form.after(glos, statsPanel);
+
+  // ---------- 50. estadísticas de uso locales ----------
+  function getStats(){
+    try { const s = JSON.parse(localStorage.getItem(LS_STATS)); if (s) return s; }catch(_){}
+    return { generadas: 0, vacias: {} };
+  }
+  function saveStats(s){ try{ localStorage.setItem(LS_STATS, JSON.stringify(s)); }catch(_){} }
+  function refreshStatsPanel(){
+    const s = getStats();
+    if (!s.generadas){ statsPanel.style.display = 'none'; return; }
+    statsPanel.style.display = 'block';
+    const top = Object.keys(s.vacias || {}).filter(id => s.vacias[id] > 0)
+      .sort((a,b)=> s.vacias[b] - s.vacias[a]).slice(0,5);
+    let html = '<b>' + (LANG==='en' ? 'Your usage (stored only in this browser):' : 'Estadísticas de uso (solo en este navegador):') + '</b> ' +
+      (LANG==='en' ? s.generadas + ' strategies generated.' : 'estrategias generadas: ' + s.generadas + '.');
+    if (top.length) html += ' ' + (LANG==='en' ? 'Most-blank questions: ' : 'Preguntas más dejadas en blanco: ') +
+      top.map(id => id + ' (' + s.vacias[id] + ')').join(', ') + '.';
+    html += ' <button type="button" class="btn mini" id="btn-stats-clear">' + (LANG==='en' ? 'Clear' : 'Borrar') + '</button>';
+    statsPanel.innerHTML = html;
+    const bc = $('#btn-stats-clear');
+    if (bc) bc.addEventListener('click', ()=>{ saveStats({generadas:0, vacias:{}}); refreshStatsPanel(); });
+  }
+  const btnGen = $('#btn-generate');
+  if (btnGen) btnGen.addEventListener('click', ()=>{
+    // este listener se ejecuta después del original: el JSON ya está en #json-out
+    try {
+      const data = JSON.parse($('#json-out').textContent);
+      const s = getStats();
+      s.generadas = (s.generadas || 0) + 1;
+      s.vacias = s.vacias || {};
+      data.respuestas.forEach(r => { if (r.respuesta === 'Sin respuesta') s.vacias[r.id] = (s.vacias[r.id] || 0) + 1; });
+      saveStats(s);
+      refreshStatsPanel();
+    } catch(_){}
+  });
+
+  // ---------- 45/47. Markdown y envío directo a la IA ----------
+  function currentData(){
+    try { return JSON.parse($('#json-out').textContent); }catch(_){ return null; }
+  }
+  function buildMarkdown(d){
+    const L = [];
+    L.push('# ' + d.documento);
+    L.push('');
+    L.push('- **Asunto:** ' + d.asunto);
+    L.push('- **Fecha de generación:** ' + d.fecha_de_generacion);
+    if (d.version_cuestionario) L.push('- **Versión del cuestionario:** ' + d.version_cuestionario);
+    L.push('');
+    L.push('> Documento autodescriptivo: pégalo en cualquier asistente de IA (ChatGPT, Gemini, Claude…) y pide la estrategia; las instrucciones van incluidas.');
+    L.push('');
+    L.push('## Instrucciones para la IA');
+    L.push('');
+    L.push(d.instrucciones_para_la_ia);
+    L.push('');
+    if (d.contexto_para_la_ia){ L.push('## Contexto'); L.push(''); L.push(d.contexto_para_la_ia); L.push(''); }
+    if (d.output_language_instruction){ L.push('## Output language'); L.push(''); L.push(d.output_language_instruction); L.push(''); }
+    L.push('## Respuestas');
+    L.push('');
+    d.respuestas.forEach(r => {
+      L.push('### [' + r.id + '] ' + r.pregunta.replace(/^[0-9]+\.[0-9]+\s*/, ''));
+      L.push('');
+      L.push('**Respuesta:** ' + r.respuesta);
+      L.push('');
+    });
+    L.push('## Estadísticas');
+    L.push('');
+    L.push('```');
+    L.push(JSON.stringify(d.estadisticas, null, 2));
+    L.push('```');
+    return L.join('\n');
+  }
+  const actions = $('.out-actions');
+  if (actions) {
+    const mk = (txt) => { const b = document.createElement('button'); b.type='button'; b.className='btn'; b.textContent = txt; actions.appendChild(b); return b; };
+    const bMd  = mk(LANG==='en' ? 'Copy Markdown' : 'Copiar Markdown');
+    const bMdD = mk(LANG==='en' ? 'Download .md' : 'Descargar .md');
+    const bGpt = mk('ChatGPT');
+    const bGem = mk('Gemini');
+    const bCla = mk('Claude');
+    const bIcs = mk(LANG==='en' ? 'Reminder (.ics)' : 'Recordatorio (.ics)');
+    bMd.addEventListener('click', async ()=>{
+      const d = currentData(); if (!d) return;
+      const ok = await copyText(buildMarkdown(d));
+      flash(bMd, ok ? (LANG==='en'?'Copied':'Copiado') : (LANG==='en'?'Error':'Error'));
+    });
+    bMdD.addEventListener('click', ()=>{
+      const d = currentData(); if (!d) return;
+      const blob = new Blob([buildMarkdown(d)], {type:'text/markdown'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'respuestas_negociacion.md'; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    const sendTo = async (btn, url)=>{
+      const d = currentData(); if (!d) return;
+      const ok = await copyText(JSON.stringify(d, null, 2));
+      window.open(url, '_blank');
+      flash(btn, ok ? (LANG==='en' ? 'JSON copied: paste it in the chat' : 'JSON copiado: pégalo en el chat') : (LANG==='en' ? 'Copy failed' : 'Fallo al copiar'));
+    };
+    bGpt.addEventListener('click', ()=> sendTo(bGpt, 'https://chat.openai.com/'));
+    bGem.addEventListener('click', ()=> sendTo(bGem, 'https://gemini.google.com/app'));
+    bCla.addEventListener('click', ()=> sendTo(bCla, 'https://claude.ai/new'));
+    bIcs.addEventListener('click', makeIcs);
+  }
+
+  // ---------- 49. recordatorio de calendario (.ics) ----------
+  function makeIcs(){
+    const d0 = fieldVal('0.2','Fecha prevista de la negociación');
+    const date = d0 ? new Date(d0 + 'T09:00:00') : new Date();
+    date.setDate(date.getDate() + 7);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = date.getFullYear() + pad(date.getMonth()+1) + pad(date.getDate());
+    const q103 = qById('10.3');
+    const t103 = q103 ? q103.querySelector('textarea') : null;
+    const desc = (t103 && t103.value.trim()) ? t103.value.trim().replace(/\r?\n/g, '\\n ')
+      : 'Seguimiento de la negociación según lo planificado en el bloque 10.3.';
+    const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//formulario negociacion universal//ES',
+      'BEGIN:VEVENT','UID:' + Date.now() + '@negociacion-local','DTSTAMP:' + ymd + 'T090000Z',
+      'DTSTART;VALUE=DATE:' + ymd, 'SUMMARY:' + (LANG==='en' ? 'Negotiation follow-up' : 'Seguimiento de la negociación'),
+      'DESCRIPTION:' + desc, 'END:VEVENT','END:VCALENDAR'].join('\r\n');
+    const blob = new Blob([ics], {type:'text/calendar'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'recordatorio_negociacion.ics'; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ---------- 12/48. tema, tamaño de letra e idioma de la interfaz ----------
+  const btnTheme = $('#btn-theme');
+  function applyThemeUI(){
+    if (!btnTheme) return;
+    if (!btnTheme.dataset.origTxt) btnTheme.dataset.origTxt = btnTheme.textContent.trim();
+    const light = document.body.classList.contains('light');
+    if (LANG === 'en') btnTheme.textContent = light ? 'Dark theme' : 'Light theme';
+    else btnTheme.textContent = light ? 'Tema oscuro' : 'Tema claro';
+  }
+  if (btnTheme) btnTheme.addEventListener('click', ()=>{
+    document.body.classList.toggle('light');
+    setPref('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    applyThemeUI();
+  });
+  const btnFont = $('#btn-font');
+  if (btnFont) btnFont.addEventListener('click', ()=>{
+    document.body.classList.toggle('big');
+    setPref('font', document.body.classList.contains('big') ? 'big' : 'normal');
+  });
+  const btnPrint = $('#btn-print');
+  if (btnPrint) btnPrint.addEventListener('click', ()=> window.print());
+  const I18N = { en: {
+    'Modo exprés (solo lo esencial)':'Express mode (essentials only)',
+    'Ver ejemplo relleno':'See filled example',
+    'Imprimir (también vacío)':'Print (blank too)',
+    'Guardar respuestas (archivo)':'Save answers (file)',
+    'Cargar archivo':'Load file',
+    'Copiar enlace con respuestas':'Copy link with answers',
+    'Tamaño de letra A±':'Font size A±',
+    'English':'Español',
+    'Opciones':'Options',
+    'Reiniciar todo':'Reset all',
+    'Generar JSON':'Generate JSON',
+    'Vaciar bloque':'Clear block',
+    'Clear block':'Clear block',
+    'Calcular coste y precio mínimo':'Calculate cost & minimum price',
+    'Moneda':'Currency'
+  }};
+  function applyLang(){
+    $$('button.btn').forEach(b => {
+      if (b.id === 'btn-theme') return;
+      if (!b.dataset.origTxt) b.dataset.origTxt = b.textContent.trim();
+      const map = I18N[LANG] || {};
+      b.textContent = map[b.dataset.origTxt] || b.dataset.origTxt;
+    });
+    $$('label.btn').forEach(l => {
+      const sel = l.querySelector('select');
+      if (sel) {
+        if (l.dataset.o === undefined) l.dataset.o = l.firstChild.textContent;
+        l.firstChild.textContent = LANG === 'en' ? (I18N.en['Moneda'] || 'Currency') : l.dataset.o;
+      } else {
+        if (!l.dataset.o) l.dataset.o = l.textContent.trim();
+        const map = I18N[LANG] || {};
+        const t = map[l.dataset.o] || l.dataset.o;
+        const input = l.querySelector('input');
+        if (input) { l.textContent = t; l.appendChild(input); }
+      }
+    });
+    applyThemeUI();
+    refreshProgress();
+  }
+  const btnLang = $('#btn-lang');
+  if (btnLang) btnLang.addEventListener('click', ()=>{
+    LANG = LANG === 'es' ? 'en' : 'es';
+    setPref('lang', LANG);
+    applyLang();
+    refreshChips();
+    refreshAvisos();
+  });
+
+  // ---------- 15. reiniciar todo ----------
+  const btnReset = $('#btn-reset');
+  if (btnReset) btnReset.addEventListener('click', ()=>{
+    if (!confirm(LANG==='en' ? 'This erases ALL answers. Continue?' : 'Se borrarán TODAS las respuestas. ¿Continuar?')) return;
+    clearQuestions($$('.q', form));
+    try { localStorage.removeItem(LS_STATE); }catch(_){}
+    try { history.replaceState(null, '', location.pathname + location.search); }catch(_){}
+    const rn = $('#restored-note');
+    if (rn) rn.style.display = 'none';
+    applyConditionals();
+    form.dispatchEvent(new Event('input',{bubbles:true}));
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // ---------- 43. metadatos y ajustes sobre el JSON generado ----------
+  window.negPostProcess = function(data){
+    data.version_cuestionario = '2.0 universal (50 mejoras)';
+    data.fecha_version = '2026-10-20';
+    data.idioma_interfaz = LANG;
+    data.moneda_elegida = CURRENCY;
+    const avisos = computeAvisos();
+    if (avisos.length) data.avisos_del_formulario = avisos;
+    if (document.body.classList.contains('express'))
+      data.nota_modo = 'El usuario rellenó el MODO EXPRÉS (solo preguntas esenciales): faltarán muchos datos; usa supuestos marcados y limita las preguntas previas a las 2-3 más decisivas.';
+    if (CURRENCY !== '€')
+      data.nota_moneda = 'El usuario negocia en la moneda «' + CURRENCY + '»: expresa las cifras en esa moneda (no en euros) y ajusta los supuestos de mercado al país correspondiente.';
+    if (LANG === 'en')
+      data.output_language_instruction = 'IMPORTANT: write the entire strategy in English. The instructions above are in Spanish, but the user works in English: follow their content and deliver every section, table, script and phrase bank in English.';
+    return data;
+  };
+
+  // ---------- menú compacto tipo hamburguesa ----------
+  const btnMenu = $('#btn-menu');
+  const menuPanel = $('#menu-panel');
+  function setMenu(open){
+    if (!btnMenu || !menuPanel) return;
+    menuPanel.hidden = !open;
+    btnMenu.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (btnMenu && menuPanel) {
+    btnMenu.addEventListener('click', e => {
+      e.stopPropagation();
+      setMenu(menuPanel.hidden);
+    });
+    document.addEventListener('click', e => {
+      if (!menuPanel.hidden && !menuPanel.contains(e.target)) setMenu(false);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+    menuPanel.addEventListener('click', e => {
+      const b = e.target.closest('button.btn, label.btn');
+      if (b && b.id !== 'btn-share') setMenu(false);
+    });
+    menuPanel.addEventListener('change', e => { if (e.target.id === 'sel-currency') setMenu(false); });
+  }
+
+  // ---------- refresco global e init ----------
+  function refreshAll(){
+    applyConditionals();
+    refreshProgress();
+    refreshChips();
+    refreshAvisos();
+  }
+  form.addEventListener('input', refreshAll); // se añade después del del script 1: pisa su recuento
+  if (PREFS.theme === 'light') document.body.classList.add('light');
+  if (PREFS.font === 'big') document.body.classList.add('big');
+  applyThemeUI();
+  applyLang();
+  if (PREFS.express) applyExpress(true);
+  if (!loadFromHash()) restoreLocal();
+  refreshAll();
+  refreshStatsPanel();
+})();
+</script>
+</body>
+</html>
