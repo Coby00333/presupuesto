@@ -1,0 +1,83 @@
+{
+  "_instrucciones_para_la_IA": "Rellena este JSON con los datos extraídos de los documentos que te faciliten (mediciones, correos, planos, notas de obra, facturas de referencia...). Reglas: (1) Mantén los nombres de las claves exactamente igual, no añadas claves nuevas. (2) Rellena solo lo que aparezca en los documentos; lo que no aparezca déjalo en su valor neutro (0, null, \"\" o false según el tipo). (3) 'partidas_por_unidades': cada partida lleva 'cantidad' (número de unidades detectadas) y 'precio_libre' (solo si el documento indica un precio concreto para esa partida; si no, déjalo en null y la web usará sus niveles de precio). (4) 'canalizaciones_importe_directo': son importes TOTALES en euros (no cantidades ni precios unitarios); p. ej. si hay 80 m de tubo a 4 €/m, escribe 320 en 'importe_eur'. (5) 'albanileria.horas': horas estimadas por concepto; si el documento solo da horas totales, repártelas en 'picado' y 'cajetin' y déjalo indicado en una nota aparte al usuario. (6) Las fechas en formato AAAA-MM-DD. (7) 'iva_porcentaje' admite 10 (reforma vivienda), 21 (general) o 0. (8) 'tipo_documento': 'presupuesto' o 'factura'. Devuelve SOLO el JSON válido, sin comentarios.",
+  "esquema": "presupuesto-electrico-ia-v1",
+  "datos_generales": {
+    "numero": "",
+    "version": "",
+    "fecha": "",
+    "tipo_obra": "Vivienda — obra nueva | Vivienda — reforma integral | Vivienda — reforma parcial | Local comercial",
+    "superficie_m2": 0,
+    "validez": "30 días | 60 días | 90 días",
+    "forma_pago": "50% al inicio / 50% a la finalización | 30% inicio / 40% mitad / 30% fin | Contado a la finalización | A convenir",
+    "coeficiente_dificultad": 1,
+    "plazo_presupuesto_A": "",
+    "plazo_presupuesto_B": "",
+    "iva_porcentaje": 10,
+    "descuento": { "valor": 0, "tipo": "%" },
+    "tipo_documento": "presupuesto"
+  },
+  "emisor": {
+    "nombre": "Carly Díaz Gutiérrez",
+    "direccion": "Calle Ayamonte 1, 2-3 · Málaga",
+    "nif": "60478208F",
+    "telefono": "633 898 407",
+    "email": "eleinsta06@gmail.com",
+    "numero_autorizacion_RIIA": "0023979287",
+    "seguro_rc": "Zurich One · Póliza 00000169787371"
+  },
+  "cliente": {
+    "nombre": "",
+    "nif": "",
+    "direccion_obra": "",
+    "poblacion": "",
+    "telefono": "",
+    "email": ""
+  },
+  "partidas_por_unidades": {
+    "enchufes":  { "concepto": "Bases de enchufe 16A con toma de tierra", "cantidad": 0, "precio_libre": null },
+    "interrup":  { "concepto": "Interruptores simples", "cantidad": 0, "precio_libre": null },
+    "conmut":    { "concepto": "Conmutadores (conmutación 2 puntos)", "cantidad": 0, "precio_libre": null },
+    "cruza":     { "concepto": "Cruzamientos (3 o más puntos)", "cantidad": 0, "precio_libre": null },
+    "puls":      { "concepto": "Pulsadores (timbre / reguladores)", "cantidad": 0, "precio_libre": null },
+    "timbre":    { "concepto": "Timbre / zumbador diurno", "cantidad": 0, "precio_libre": null },
+    "pluz":      { "concepto": "Puntos de luz (preinstalación: corrugado + cable)", "cantidad": 0, "precio_libre": null },
+    "acometida": { "concepto": "Acometida entubada 2×16 mm²", "cantidad": 0, "precio_libre": null },
+    "contador":  { "concepto": "Módulo / caja para contador monofásico", "cantidad": 0, "precio_libre": null },
+    "enlace":    { "concepto": "Línea de enlace (derivación individual) entubada 2×16 mm²", "cantidad": 0, "precio_libre": null },
+    "tierra":    { "concepto": "Puesta a tierra (cable 1×35 mm² + puntones)", "cantidad": 0, "precio_libre": null },
+    "seccion":   { "concepto": "Caja seccionadora / comprobación de tierra", "cantidad": 0, "precio_libre": null },
+    "cajacgmp":  { "concepto": "Caja modular para cuadro (36 módulos)", "cantidad": 0, "precio_libre": null },
+    "iga":       { "concepto": "IGA interruptor general automático monofásico 40A", "cantidad": 0, "precio_libre": null },
+    "dif":       { "concepto": "Diferenciales 2P 40A 30mA", "cantidad": 0, "precio_libre": null },
+    "pia":       { "concepto": "PIA magnetotérmicos por circuito (C1…C9)", "cantidad": 0, "precio_libre": null },
+    "manoobra":  { "concepto": "Mano de obra especializada: montaje e interconexión", "cantidad": 0, "precio_libre": null },
+    "boletin":   { "concepto": "Tramitación administrativa y Boletín Eléctrico (CIE)", "cantidad": 0, "precio_libre": null }
+  },
+  "canalizaciones_importe_directo": {
+    "tubo23":   { "concepto": "Tubo corrugado Ø23 mm para empotrar", "importe_eur": 0 },
+    "tubo26":   { "concepto": "Tubo corrugado Ø26 mm para empotrar", "importe_eur": 0 },
+    "cab15":    { "concepto": "Cable 750V 1×1,5 mm² (iluminación / maniobra)", "importe_eur": 0 },
+    "cab25":    { "concepto": "Cable 750V 1×2,5 mm² (tomas de uso general)", "importe_eur": 0 },
+    "cab46":    { "concepto": "Cable 750V 1×4/6 mm² (cocina, horno, lavadora, climatización)", "importe_eur": 0 },
+    "regletas": { "concepto": "Regletas de conexión varias (clemas)", "importe_eur": 0 }
+  },
+  "albanileria": {
+    "incluir": false,
+    "precio_hora": 28,
+    "horas": {
+      "marcado":  { "concepto": "Marcado de rozas", "horas": 0 },
+      "picado":   { "concepto": "Picado de regatas", "horas": 0 },
+      "cajetin":  { "concepto": "Colocación de cajetines y cajas de empalme", "horas": 0 },
+      "tapado":   { "concepto": "Tapado de rozas con mortero", "horas": 0 },
+      "collado":  { "concepto": "Collado de caja de cuadro (magnetotérmica) con yeso", "horas": 0 },
+      "pluzalb":  { "concepto": "Puntos de luz en techos y paredes con corrugado", "horas": 0 }
+    },
+    "material_auxiliar": 0,
+    "maquinas": 0,
+    "andamio": 0,
+    "retirada_residuos": 0
+  },
+  "partidas_libres": [
+    { "concepto": "", "precio": 0, "cantidad": 0 }
+  ]
+}
