@@ -3,7 +3,7 @@
    refresca la caché; sin red se sirve la copia local (funcionamiento offline
    completo, los datos del usuario viven en localStorage/IndexedDB). */
 'use strict';
-const CACHE='presu-pro-v7';
+const CACHE='presu-pro-v8';
 const ASSETS=[
   './','./index.html','./manifest.webmanifest','./icons/icon.svg','./precios.json',
   './js/data.js','./js/pure.js','./js/calc.js','./js/pdf.js','./js/app.js',

@@ -76,6 +76,7 @@ function rowsA(){
       /* en mecanismos el precio ya incluye mano de obra + material de la marca */
       const pu=pPr(p.id);
       const imp=q*pu;
+      if(imp<=0) return;   /* partida de precio libre sin precio: no va al documento */
       const row=[p.name,p.unit,nfC.format(q),nfC.format(pu),nf.format(imp)+' '+cur().sym];
       if(p.cls==='mo'){ go.push(row); so+=imp; } else { gm.push(row); sm+=imp; }
     });

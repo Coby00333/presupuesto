@@ -40,7 +40,7 @@ const TT={
  * @property {string} id
  * @property {string} name
  * @property {string} unit ud|m|rollo|viaje|global
- * @property {number[]} prices 5 niveles de precio
+ * @property {number[]} prices niveles de precio (vacío = solo precio libre)
  * @property {number} qty
  * @property {'mat'|'mo'} cls parte 1 materiales / parte 2 mano de obra
  * @property {string=} tt clave de TT
@@ -82,21 +82,20 @@ const GRUPOS=[
     { id:'pia', name:'PIA magnetotérmicos por circuito (C1…C9)', unit:'ud', prices:[7,10,14,17,20], qty:0, cls:'mat', tt:'pia' },
   ]},
   { div:'g-canal', titulo:'Canalizaciones, cableado y tramitación', partidas:[
-    /* #32: tubo por rollos al precio de venta de Leroy Merlin (LEXMAN):
-       Ø16–20 → rollo 100 m (PVC 15,99 · forrado 22,89 · libre halógenos 31,79 €);
-       Ø25–40 → 25 mm rollo 75 m PVC 15,40 · 32 mm rollo 50 m PVC 18,99 / forrado 24,49 € */
-    { id:'tubo23', name:'Tubo corrugado Ø16–20 mm para empotrar (rollo 100 m)', unit:'rollo', prices:[15.99,22.89,31.79], qty:0, cls:'mat' },
-    { id:'tubo26', name:'Tubo corrugado Ø25–40 mm para empotrar (rollo)', unit:'rollo', prices:[15.40,18.99,24.49], qty:0, cls:'mat' },
-    { id:'cab15', name:'Cable 750V 1×1,5 mm² (iluminación / maniobra)', unit:'global', prices:[57,85,114,142,170], qty:0, cls:'mat' },
-    { id:'cab25', name:'Cable 750V 1×2,5 mm² (tomas de uso general)', unit:'global', prices:[76,112,148,184,220], qty:0, cls:'mat' },
-    { id:'cab46', name:'Cable 750V 1×4/6 mm² (cocina, horno, lavadora, climatización)', unit:'global', prices:[63,97,132,166,200], qty:0, cls:'mat' },
+    /* tubo, cable y transporte: precio libre del instalador (sin niveles sugeridos);
+       referencia de compra en docs/precios.txt (LEXMAN, TOP CABLE) */
+    { id:'tubo23', name:'Tubo corrugado Ø16–20 mm para empotrar (rollo 100 m)', unit:'rollo', prices:[], qty:0, cls:'mat' },
+    { id:'tubo26', name:'Tubo corrugado Ø25–40 mm para empotrar (rollo)', unit:'rollo', prices:[], qty:0, cls:'mat' },
+    { id:'cab15', name:'Cable 750V 1×1,5 mm² (iluminación / maniobra)', unit:'global', prices:[], qty:0, cls:'mat' },
+    { id:'cab25', name:'Cable 750V 1×2,5 mm² (tomas de uso general)', unit:'global', prices:[], qty:0, cls:'mat' },
+    { id:'cab46', name:'Cable 750V 1×4/6 mm² (cocina, horno, lavadora, climatización)', unit:'global', prices:[], qty:0, cls:'mat' },
     { id:'regletas', name:'Regletas de conexión varias (clemas)', unit:'global', prices:[13,20,27,33,40], qty:0, cls:'mat' },
     { id:'manoobra', name:'Mano de obra especializada: montaje e interconexión', unit:'global', prices:[565,850,1135,1415,1700], qty:0, cls:'mo' },
     { id:'boletin', name:'Tramitación administrativa y Boletín Eléctrico (CIE)', unit:'ud', prices:[95,135,175,210,250], qty:0, cls:'mo', tt:'boletin' },
   ]},
-  /* servicio de transporte: radio 10/15/20/25 o precio libre (cantidad de viajes) */
+  /* servicio de transporte: precio libre por viaje (sin niveles sugeridos) */
   { div:'g-serv', titulo:'Servicios — transporte y desplazamientos', partidas:[
-    { id:'transporte', name:'Transporte de materiales y desplazamientos', unit:'viaje', prices:[10,15,20,25], qty:0, cls:'mo' },
+    { id:'transporte', name:'Transporte de materiales y desplazamientos', unit:'viaje', prices:[], qty:0, cls:'mo' },
   ]},
 ];
 
@@ -239,7 +238,7 @@ function aplicarTarifasExternas(d){
   }
   if(d.niveles){ Object.entries(d.niveles).forEach(([id,pr])=>{
     const g=GRUPOS.flatMap(x=>x.partidas).find(p=>p.id===id);
-    if(g&&Array.isArray(pr)&&pr.length===5) g.prices=pr.map(Number);
+    if(g&&g.prices.length&&Array.isArray(pr)&&pr.length===g.prices.length) g.prices=pr.map(Number);
   }); NIV_OVR={}; }
   PRECIOS_VER=d.version;
   return true;

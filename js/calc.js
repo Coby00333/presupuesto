@@ -245,8 +245,9 @@ function compararMarcas(){
 /* ================= niveles de precio por partida (#25) ================= */
 function renderNivelesEditor(){
   const wrap=$('#niveles-editor-wrap'); if(!wrap) return;
-  const niv=Math.max(...GRUPOS.flatMap(g=>g.partidas).map(p=>basePrices(p).length));
-  const rows=GRUPOS.flatMap(g=>g.partidas).map(p=>{
+  const parts=GRUPOS.flatMap(g=>g.partidas).filter(p=>basePrices(p).length);  /* sin partidas de precio libre */
+  const niv=Math.max(...parts.map(p=>basePrices(p).length));
+  const rows=parts.map(p=>{
     const pr=basePrices(p);
     const cells=pr.map((v,i)=>
       `<td style="text-align:right"><input type="number" min="0" step="0.01" data-niv="${p.id}" data-idx="${i}" value="${v}"></td>`).join('');
@@ -354,7 +355,7 @@ function calc(){
         qty=parseFloat(box.querySelector('[data-qty]').value)||0;
         pr=pPr(p.id);        /* en mecanismos ya incluye la mano de obra + el material */
         imp=qty*pr;
-        box.querySelector('[data-sub]').textContent=qty>0?`${nfC.format(qty)} × ${nfC.format(pr)} = ${money(imp)}`:'—';
+        box.querySelector('[data-sub]').textContent=(qty>0&&pr>0)?`${nfC.format(qty)} × ${nfC.format(pr)} = ${money(imp)}`:'—';
       }
       const impC=imp*coef;
       sumA0+=imp; sumA+=impC;
