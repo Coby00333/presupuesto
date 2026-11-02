@@ -33,6 +33,11 @@ const TT={
   boletin:'Boletín eléctrico (CIE): certificado de instalación exigido para dar de alta el suministro. Incluye tramitación ante industria.',
   pluz:'Punto de luz: preinstalación con tubo corrugado y cable hasta el punto (no incluye luminaria).',
   acometida:'Acometida: línea desde la red de la compañía hasta la caja de contador.',
+  tubo23:'Precio de referencia de compra: rollo LEXMAN Ø20 de 100 m ≈ 18 € → 0,18 €/m. Escribe los metros y el total se calcula solo; el precio libre sustituye al de referencia.',
+  tubo26:'Precio de referencia de compra: rollo LEXMAN Ø32 de 50 m ≈ 20 € → 0,40 €/m (forrado Ø25 de 75 m ≈ 25 € → 0,33 €/m). Escribe los metros y el total se calcula solo.',
+  cab15:'Precio de referencia de compra: bobina TOP CABLE H07Z1-K 1,5 mm² de 200 m ≈ 168 € → 0,84 €/m. Escribe los metros y el total se calcula solo.',
+  cab25:'Precio de referencia de compra: bobina TOP CABLE H07Z1-K 2,5 mm² de 200 m ≈ 264 € → 1,32 €/m. Escribe los metros y el total se calcula solo.',
+  cab46:'Precio de referencia de compra: 4 mm² ≈ 75 €/25 m → 3,00 €/m · 6 mm² ≈ 90 €/25 m → 3,60 €/m. Escribe los metros y el total se calcula solo.',
 };
 
 /**
@@ -40,10 +45,11 @@ const TT={
  * @property {string} id
  * @property {string} name
  * @property {string} unit ud|m|rollo|viaje|global
- * @property {number[]} prices niveles de precio (vacío = solo precio libre)
+ * @property {number[]} prices niveles de precio (vacío = referencia o solo precio libre)
  * @property {number} qty
  * @property {'mat'|'mo'} cls parte 1 materiales / parte 2 mano de obra
  * @property {string=} tt clave de TT
+ * @property {number=} refp precio de referencia por unidad (€/m) para partidas sin niveles
  * @typedef {Object} Grupo
  * @property {string} div id del contenedor DOM
  * @property {string} titulo
