@@ -88,13 +88,13 @@ const GRUPOS=[
     { id:'pia', name:'PIA magnetotérmicos por circuito (C1…C9)', unit:'ud', prices:[7,10,14,17,20], qty:0, cls:'mat', tt:'pia' },
   ]},
   { div:'g-canal', titulo:'Canalizaciones, cableado y tramitación', partidas:[
-    /* tubo, cable y transporte: precio libre del instalador (sin niveles sugeridos);
-       referencia de compra en docs/precios.txt (LEXMAN, TOP CABLE) */
-    { id:'tubo23', name:'Tubo corrugado Ø16–20 mm para empotrar (rollo 100 m)', unit:'rollo', prices:[], qty:0, cls:'mat' },
-    { id:'tubo26', name:'Tubo corrugado Ø25–40 mm para empotrar (rollo)', unit:'rollo', prices:[], qty:0, cls:'mat' },
-    { id:'cab15', name:'Cable 750V 1×1,5 mm² (iluminación / maniobra)', unit:'global', prices:[], qty:0, cls:'mat' },
-    { id:'cab25', name:'Cable 750V 1×2,5 mm² (tomas de uso general)', unit:'global', prices:[], qty:0, cls:'mat' },
-    { id:'cab46', name:'Cable 750V 1×4/6 mm² (cocina, horno, lavadora, climatización)', unit:'global', prices:[], qty:0, cls:'mat' },
+    /* tubo y cable por METROS con precio de referencia de compra (€/m) derivado
+       de docs/precios.txt (LEXMAN, TOP CABLE); el precio libre lo sustituye */
+    { id:'tubo23', name:'Tubo corrugado Ø16–20 mm para empotrar', unit:'m', prices:[], refp:0.18, qty:0, cls:'mat', tt:'tubo23' },
+    { id:'tubo26', name:'Tubo corrugado Ø25–40 mm para empotrar', unit:'m', prices:[], refp:0.40, qty:0, cls:'mat', tt:'tubo26' },
+    { id:'cab15', name:'Cable 750V 1×1,5 mm² (iluminación / maniobra)', unit:'m', prices:[], refp:0.84, qty:0, cls:'mat', tt:'cab15' },
+    { id:'cab25', name:'Cable 750V 1×2,5 mm² (tomas de uso general)', unit:'m', prices:[], refp:1.32, qty:0, cls:'mat', tt:'cab25' },
+    { id:'cab46', name:'Cable 750V 1×4/6 mm² (cocina, horno, lavadora, climatización)', unit:'m', prices:[], refp:3.00, qty:0, cls:'mat', tt:'cab46' },
     { id:'regletas', name:'Regletas de conexión varias (clemas)', unit:'global', prices:[13,20,27,33,40], qty:0, cls:'mat' },
     { id:'manoobra', name:'Mano de obra especializada: montaje e interconexión', unit:'global', prices:[565,850,1135,1415,1700], qty:0, cls:'mo' },
     { id:'boletin', name:'Tramitación administrativa y Boletín Eléctrico (CIE)', unit:'ud', prices:[95,135,175,210,250], qty:0, cls:'mo', tt:'boletin' },
@@ -104,6 +104,8 @@ const GRUPOS=[
     { id:'transporte', name:'Transporte de materiales y desplazamientos', unit:'viaje', prices:[], qty:0, cls:'mo' },
   ]},
 ];
+/* búsqueda de partida por id (precio de referencia en pPr) */
+const PART_BY_ID=Object.fromEntries(GRUPOS.flatMap(g=>g.partidas).map(p=>[p.id,p]));
 
 /* ---- unificación mecanismos + material por marca: partida ↔ item de catálogo ----
    La cantidad de la partida arrastra el material de la marca elegida;

@@ -53,11 +53,15 @@ function renderGrupos(){
       const box=document.createElement('div'); box.className='partida'; box.dataset.id=p.id;
       const tip=p.tt?` <span class="tt" tabindex="0" data-tip="${esc(TT[p.tt])}">?</span>`:'';
       const unit=p.unit==='m'?'m':p.unit;
-      const chips=basePrices(p).map((pr,i)=>{
+      /* partidas sin niveles: chip fijo con el precio de referencia (€/m) */
+      const chips=basePrices(p).length?basePrices(p).map((pr,i)=>{
         const v=chipVal(pr,1);
         return `<label class="chip-opt${i===basePrices(p).length-1?' sel':''}" title="${nfC.format(v)} ${cur().sym}">
           <input type="radio" name="pr-${p.id}" value="${v}" data-idx="${i}" ${i===basePrices(p).length-1?'checked':''}>
-          <span>${nfC.format(v)} ${cur().sym}</span></label>`;}).join('');
+          <span>${nfC.format(v)} ${cur().sym}</span></label>`;}).join('')
+        :(p.refp!=null
+          ?`<span class="chip-opt sel" data-refpr title="Precio de referencia ${nfC.format(p.refp)} ${cur().sym}/${unit} — el precio libre lo sustituye">${nfC.format(p.refp)} ${cur().sym}/${unit}</span>`
+          :'');
       box.innerHTML=`
         <div class="p-head">
           <span class="p-name">${esc(p.name)}${tip} <small>(${unit})</small></span>
@@ -65,10 +69,10 @@ function renderGrupos(){
         </div>
         <div class="p-row">
           <span class="qty-wrap"><label>Cant.</label>
-            <input type="number" min="0" step="1" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}"></span>
+            <input type="number" min="0" step="${p.unit==='m'?0.5:1}" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}"></span>
           <div class="chips">${chips}</div>
-          <span class="qty-wrap free-wrap" title="Escribe tu propio precio: si lo rellenas sustituye al nivel elegido">
-            <label>Precio libre</label>
+          <span class="qty-wrap free-wrap" title="Escribe tu propio precio${p.unit==='m'?' por metro':''}: si lo rellenas sustituye al nivel elegido">
+            <label>Precio libre${p.unit==='m'?' €/m':''}</label>
             <input type="number" min="0" step="0.1" id="free-${p.id}" data-free="${p.id}" placeholder="—"></span>
         </div>`;
       host.appendChild(box);
@@ -333,9 +337,12 @@ function repriceChips(){
 
 /* ================= cálculo ================= */
 function pQty(id){ const el=document.querySelector(`.partida[data-id="${id}"] [data-qty]`); return el?(parseFloat(el.value)||0):0; }
-function pPr(id){ const box=document.querySelector(`.partida[data-id="${id}"]`); if(!box) return 0;
+/* precio efectivo de una partida: precio libre > nivel (radio) > precio de referencia (€/m) */
+function pPr(id){ const box=document.querySelector(`.partida[data-id="${id}"]`);
+  const rp=(PART_BY_ID[id]&&PART_BY_ID[id].refp)||0;
+  if(!box) return rp;
   const f=box.querySelector('[data-free]'); const fv=f?(parseFloat(f.value)||0):0; if(fv>0) return fv;
-  const el=box.querySelector('input:checked'); return el?(parseFloat(el.value)||0):0; }
+  const el=box.querySelector('input:checked'); return el?(parseFloat(el.value)||0):rp; }
 /* precio de material de un ítem del catálogo según la marca elegida (null = N/D) */
 function matPr(itId){ const sel=$('#f-marca'); const M=sel?(MARCAS[sel.value]||MARCAS.miluz):MARCAS.miluz; return M.p[itId]; }
 /* cantidad de un ítem: la de su partida asociada o la de su propia fila */
@@ -477,7 +484,7 @@ function calc(){
 const KEY='presu-electrico-pro-v3';
 let UNDO=[], REDO=[], lastSnap=null, LOADING=true, DIRTY=false;
 function getState(){
-  const st={v:4, vals:{}, chips:{},
+  const st={v:5, vals:{}, chips:{},
     libres:$$('#libres-wrap .lib-row').map(r=>({n:r.querySelector('[data-lib="n"]').value, p:parseFloat(r.querySelector('[data-lib="p"]').value)||0, q:parseFloat(r.querySelector('[data-lib="q"]').value)||0})),
     albs:$$('#alb-rows .alb-row').map(r=>({id:r.dataset.id, n:r.querySelector('.cname').value, h:parseFloat(r.querySelector('[data-albh]').value)||0, p:parseFloat(r.querySelector('[data-albp]').value)||0})),
     wizard:document.body.classList.contains('wizard') };
@@ -514,6 +521,29 @@ function migrate(st){
       delete st.vals[k];
     });
     st.v=4;
+  }
+  if(st.v<5){
+    /* v4→v5: tubos pasan de rollos a METROS (×100 el Ø16–20, ×50 el Ø25–40) y
+       su precio libre de €/rollo a €/m; los cables (importe directo Cant.1 +
+       Precio libre) no se pueden convertir a metros: el importe se conserva
+       como partida libre para no perderlo */
+    const M={tubo23:100,tubo26:50};
+    Object.entries(M).forEach(([id,f])=>{
+      const q=parseFloat((st.vals||{})['q-'+id])||0;
+      const fr=parseFloat((st.vals||{})['free-'+id])||0;
+      if(q>0) st.vals['q-'+id]=q*f;
+      if(fr>0) st.vals['free-'+id]=Math.round(fr/f*100)/100;
+    });
+    ['cab15','cab25','cab46'].forEach(id=>{
+      const q=parseFloat((st.vals||{})['q-'+id])||0;
+      const fr=parseFloat((st.vals||{})['free-'+id])||0;
+      if(fr>0){
+        const P=PART_BY_ID[id];
+        st.libres=(st.libres||[]).concat([{n:(P?P.name:id)+' (importe versión anterior)',p:fr,q:q>0?q:1}]);
+        st.vals['q-'+id]=0; st.vals['free-'+id]='';
+      }
+    });
+    st.v=5;
   }
   return st;
 }
