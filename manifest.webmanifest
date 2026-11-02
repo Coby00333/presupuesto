@@ -1,0 +1,15 @@
+{
+  "name": "Presupuesto Eléctrico PRO",
+  "short_name": "Presu PRO",
+  "description": "Presupuestos y facturas de instalaciones eléctricas con cálculo REBT, PDF, firma y multi-obra.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#e5e5e5",
+  "theme_color": "#f0b400",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

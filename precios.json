@@ -1,0 +1,7 @@
+{
+  "_doc": "Tarifas externas (#42). La app carga este archivo al iniciar (solo con http/https). Para publicar nuevas tarifas: edita los valores y sube 'version' por encima de la anterior (la interna es 1). Solo se aplican las claves incluidas; el resto conservan el precio de fábrica. 'marcas' = precios por marca (id de mecanismo -> precio, null = no disponible). 'niveles' = los 5 niveles de precio de una partida (id -> [n1..n5]).",
+  "version": 1,
+  "fecha": "2026-10-27",
+  "marcas": {},
+  "niveles": {}
+}
