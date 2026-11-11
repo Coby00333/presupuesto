@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f0b400">
 <meta name="description" content="Generador profesional de presupuestos y facturas de instalación eléctrica: partidas por niveles de precio, precio libre, material por marca, albañilería e importación de datos mediante JSON.">
+<!-- #7 mejoras2: CSP — solo script propio + cdnjs (con SRI), sin objetos, sin base/form externos.
+     style 'unsafe-inline' por los <style> y style="" de la propia página y del PDF de respaldo. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,9 +103,15 @@
   .p-name small{color:var(--tx2);font-weight:400}
   .p-sub{color:var(--ok);font-weight:800;font-size:var(--fs-m);white-space:nowrap}
   .p-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:var(--sp-2)}
-  .qty-wrap{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 auto}
+  .qty-wrap{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 auto;flex-wrap:wrap}
   .qty-wrap label{font-size:var(--fs-xs);color:var(--tx2);font-weight:700}
   .qty-wrap input[type=number]{width:84px;text-align:center;font-weight:700}
+  /* casilla «×3 L+T+N» junto a la cantidad de cables unipolares (#2 mejoras) */
+  .ltn{display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;
+    font-size:var(--fs-xs);font-weight:800;color:var(--tx2);
+    border:1px solid var(--line);border-radius:var(--r-s);padding:2px 6px;user-select:none}
+  .ltn input{accent-color:var(--acc);margin:0}
+  .ltn:has(input:checked){color:var(--acc);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,transparent)}
   .free-wrap input[type=number]{width:96px;border-color:#111;color:#111;background:var(--acc);font-weight:700}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip-opt{display:inline-flex;align-items:center;border:2px solid var(--line);border-radius:var(--r-s);
@@ -226,9 +235,9 @@
   #modal{position:fixed;inset:0;z-index:200;background:#000a;display:none;align-items:center;
         justify-content:center;padding:var(--sp-4)}
   #modal.show{display:flex}
-  #modal-tipo,#modal-works,#modal-import{position:fixed;inset:0;z-index:220;background:#000a;display:none;
+  #modal-tipo,#modal-works,#modal-import,#modal-precios,#modal-facturas,#modal-diag{position:fixed;inset:0;z-index:220;background:#000a;display:none;
         align-items:center;justify-content:center;padding:24px}
-  #modal-tipo.show,#modal-works.show,#modal-import.show{display:flex}
+  #modal-tipo.show,#modal-works.show,#modal-import.show,#modal-precios.show,#modal-facturas.show,#modal-diag.show{display:flex}
   #modal-tipo .modal-box{width:min(500px,94vw);height:auto}
   #modal-tipo .tipo-opts{display:grid;gap:10px;padding:18px}
   #modal-tipo .tipo-opts .btn{padding:12px;text-align:left;font-size:.95rem}
@@ -239,12 +248,18 @@
   .modal-head{display:flex;align-items:center;gap:var(--sp-2);padding:12px var(--sp-4);
         background:var(--acc);border-bottom:3px solid #111}
   .modal-head h3{margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:.03em;color:#111;flex:1}
-  #modal-works .modal-box,#modal-import .modal-box{width:min(760px,94vw);height:auto;max-height:86vh;overflow:auto}
-  #modal-works .modal-body,#modal-import .modal-body{padding:var(--sp-4)}
+  #modal-works .modal-box,#modal-import .modal-box,#modal-precios .modal-box,#modal-facturas .modal-box,#modal-diag .modal-box{width:min(760px,94vw);height:auto;max-height:86vh;overflow:auto}
+  #modal-works .modal-body,#modal-import .modal-body,#modal-precios .modal-body,#modal-facturas .modal-body,#modal-diag .modal-body{padding:var(--sp-4)}
   #pdf-frame{flex:1;border:0;width:100%;background:#404040}
   #loading-pdf{position:fixed;inset:0;z-index:300;background:#000b;color:#fff;display:none;
         align-items:center;justify-content:center;font-size:1rem;font-weight:700}
   #loading-pdf.show{display:flex}
+  /* #6 mejoras2: aviso de nueva versión PWA */
+  #sw-update{position:fixed;top:0;left:0;right:0;z-index:400;display:none;align-items:center;gap:10px;
+        padding:10px 14px;background:var(--acc);color:#111;border-bottom:3px solid #111;font-weight:700;font-size:.9rem}
+  #sw-update.show{display:flex}
+  #sw-update .btn{padding:6px 12px;font-size:.8rem}
+  #sw-update .push{margin-left:auto}
   /* ---- navbar de secciones ---- */
   #secnav{background:#111;border-bottom:3px solid #111}
   .secnav-inner{max-width:1120px;margin:0 auto;padding:0 var(--sp-4);display:flex;gap:2px;
@@ -296,11 +311,22 @@
   #restored-note{display:none;max-width:1120px;margin:0 auto;padding:var(--sp-2) 20px;font-size:.8rem;
         color:var(--ok);font-weight:700}
   #restored-note.show{display:block}
+  /* ---- modo obra (#9 mejoras): una columna compacta, subtotales siempre visibles ---- */
+  .qks{display:inline-flex;gap:4px}
+  .btn.mini.qk{padding:3px 7px;font-size:.72rem;line-height:1.2}
+  #works-list select[data-work-estado]{padding:4px 6px;font-size:.78rem;font-weight:700}
+  body.obra #side{display:none!important}
+  body.obra .sumbar{display:flex!important}
+  body.obra{padding-bottom:96px}
+  body.obra .partida{padding:8px 10px}
+  body.obra .p-row{gap:8px}
+  body.obra .qty-wrap input[type=number]{width:76px}
+  body.obra .chips{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px}
   @media(max-width:640px){
     .grid2,.grid3,.grid4{grid-template-columns:1fr}
   }
   @media print{
-    .topbar,.sumbar,#side,.menu-wrap,.tt,#modal,#modal-tipo,#modal-works,#modal-import,.actions-grid,
+    .topbar,.sumbar,#side,.menu-wrap,.tt,#modal,#modal-tipo,#modal-works,#modal-import,#modal-precios,#modal-facturas,#modal-diag,#sw-update,.actions-grid,
     #wizard-nav,#toast-wrap,#card-perfil,#side-backdrop{display:none!important}
     body{background:#fff;color:#000;padding:0}
     .card,.partida,.resumen,details.block{border:1px solid #999;background:#fff;color:#000;
@@ -318,6 +344,7 @@
       <span id="progress-text">0 partidas</span>
     </div>
     <span id="saved-ind" aria-live="polite"></span>
+    <button class="btn" id="btn-obra" type="button" aria-pressed="false" title="Layout compacto de una columna con subtotales siempre visibles (visitas y obra)">Modo obra</button>
     <button class="btn pdf" id="btn-pdf-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar PDF</button>
     <div class="menu-wrap">
       <button class="btn" id="btn-menu" type="button" aria-expanded="false" aria-controls="menu-panel">
@@ -333,6 +360,8 @@
         <label class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar JSON<input type="file" id="file-json" accept=".json"></label>
         <button class="btn" id="btn-work-save" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar obra actual</button>
         <button class="btn" id="btn-works" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Mis obras</button>
+        <button class="btn" id="btn-nuevo-pe" type="button" title="Guarda la obra actual en «Mis obras» y empieza un presupuesto en blanco con el siguiente número"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nuevo presupuesto</button>
+        <button class="btn" id="btn-precios" type="button" title="Pega un listado de Leroy Merlin y recalibra los precios de referencia (€/m y €/ud) sin tocar código"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Actualizar precios</button>
         <div class="menu-sep"></div>
         <div class="menu-title">Edición</div>
         <button class="btn" id="btn-undo" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg>Deshacer (Ctrl+Z)</button>
@@ -346,6 +375,13 @@
             <option value="dark">Oscuro</option>
             <option value="light">Claro</option>
           </select></label>
+        <div class="menu-sep"></div>
+        <div class="menu-title">Facturación y sistema</div>
+        <button class="btn" id="btn-facturas" type="button" title="Libro de facturas emitidas: cobros pendientes y exportación CSV"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Facturación — libro</button>
+        <button class="btn" id="btn-export-total" type="button" title="Exporta TODO (obras, clientes, plantillas, facturas, precios y ajustes) en un único JSON de respaldo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 3 17 8 22 8"/><line x1="12" y1="17" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>Exportar copia total</button>
+        <label class="btn" title="Restaura un JSON de copia total (con previsualización antes de aplicar)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restaurar copia total<input type="file" id="file-dbtotal" accept=".json"></label>
+        <button class="btn" id="btn-install" type="button" hidden title="Instala la app en la pantalla de inicio (funciona sin conexión)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9v5"/><path d="M8 11l2-2 2 2"/><line x1="16" y1="8" x2="16" y2="16"/></svg>Instalar como app</button>
+        <button class="btn" id="btn-diag" type="button" title="Estado de la app, almacenamiento y últimos errores, con informe copiable para soporte"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Diagnóstico</button>
       </div>
     </div>
   </div>
@@ -397,7 +433,7 @@
     </div>
     <div class="grid4" style="margin-top:12px">
       <div class="field"><label>Superficie aprox. (m²)</label>
-        <input type="number" id="f-m2" min="0" placeholder="120"></div>
+        <input type="number" id="f-m2" inputmode="decimal" min="0" placeholder="120"></div>
       <div class="field"><label>Validez de la oferta</label>
         <select id="f-validez"><option selected>5 días hábiles</option><option>30 días</option><option>60 días</option><option>90 días</option></select></div>
       <div class="field"><label>Forma de pago</label>
@@ -472,6 +508,7 @@
         <input type="text" id="inp-tpl-nombre" placeholder="Nombre de la plantilla (ej.: Casa Los Robles)">
         <button type="button" class="btn mini primary" id="btn-tpl-save">Guardar cantidades actuales</button>
       </div>
+      <p class="hint" style="margin:8px 0 0">Al aplicar una plantilla se <b>sobrescriben todas las cantidades</b> del presupuesto (y se marcan sus casillas ×3 L+T+N). Incluye plantillas listas de fábrica: vivienda 70/90/120 m², reforma de cocina, cambio de cuadro + boletín y línea exterior enterrada; puedes borrarlas o guardar las tuyas.</p>
       <div id="tpl-list"></div>
     </details>
   </section>
@@ -483,7 +520,7 @@
       <summary>REBT avanzado — sección de conductores por caída de tensión (#26)</summary>
       <div class="grid3" style="margin-top:10px">
         <div class="field"><label>Longitud media de circuito (m)</label>
-          <input type="number" id="rebt-l" min="1" step="1" value="18"></div>
+          <input type="number" id="rebt-l" inputmode="decimal" min="1" step="1" value="18"></div>
         <div class="field"><label>Límite de caída</label>
           <select id="rebt-lim"><option value="3">3% — iluminación</option><option value="5" selected>5% — resto</option></select></div>
         <div class="field" style="display:flex;align-items:flex-end">
@@ -497,7 +534,25 @@
   <!-- ================= 4 CANALIZACIONES ================= -->
   <section class="card step" id="sec-canal" data-step="3">
     <h2>4 — Canalizaciones, cableado, mano de obra y boletín</h2>
-    <p class="hint">Tubo, cable y transporte se presupuestan con <b>precio libre</b>: escribe el precio por rollo, el importe del cableado o el precio por viaje. Referencia de compra en <b>docs/precios.txt</b> (LEXMAN, TOP CABLE).</p>
+    <p class="hint">Escribe los <b>metros</b> de tubo o cable y el total se calcula solo con el <b>precio de referencia</b> de compra (€/m, visto en el chip); las jornadas de canalización (€/día) y las cajas de registro (€/ud) también se calculan solas. Si escribes un <b>precio libre</b> sustituye al de referencia. Referencias de compra Leroy Merlin 09/11/2026 en <b>docs/precios.txt</b>.</p>
+    <details class="block" id="estimador">
+      <summary>Estimar metros desde puntos (visita sin plano)</summary>
+      <p class="hint" style="margin:8px 0 0">Introduce los puntos previstos y los m² de la vivienda: la app estima el tubo, los cables (metros de <b>recorrido</b> con la casilla ×3 ya marcada), los cajillos y las jornadas, y rellena las filas de abajo. Después puedes retocar cualquier cantidad.</p>
+      <div class="grid4" style="margin-top:10px">
+        <div class="field"><label>Enchufes</label>
+          <input type="number" inputmode="decimal" min="0" step="1" value="0" id="est-ench"></div>
+        <div class="field"><label>Interruptores / conmutadores</label>
+          <input type="number" inputmode="decimal" min="0" step="1" value="0" id="est-int"></div>
+        <div class="field"><label>Puntos de luz</label>
+          <input type="number" inputmode="decimal" min="0" step="1" value="0" id="est-luz"></div>
+        <div class="field"><label>Superficie vivienda (m²)</label>
+          <input type="number" inputmode="decimal" min="0" step="1" value="0" id="est-m2"></div>
+      </div>
+      <div class="row-flex" style="margin-top:10px">
+        <button type="button" class="btn mini primary" id="btn-estimar">Estimar y rellenar</button>
+        <div id="est-res" style="flex:1;min-width:0;font-weight:700;font-size:var(--fs-s)"></div>
+      </div>
+    </details>
     <div id="g-canal"></div>
     <details class="block" id="niveles-editor">
       <summary>Editar los 5 niveles de precio de cada partida (#25)</summary>
@@ -520,7 +575,7 @@
     <p class="hint">Todo a cero por defecto: escribe las horas de cada concepto y se activa solo. Sin horas, no suma nada.</p>
     <div class="grid2" style="margin-top:14px">
       <div class="field"><label>Precio hora oficial/peón</label>
-        <input type="number" id="f-alb-tarifa" min="0" step="0.5" value="28"></div>
+        <input type="number" id="f-alb-tarifa" inputmode="decimal" min="0" step="0.5" value="28"></div>
       <div class="field"><label>Horas totales (auto)</label>
         <input type="number" id="f-alb-horas" readonly tabindex="-1"></div>
     </div>
@@ -528,13 +583,13 @@
     <button type="button" class="btn mini" id="btn-alb-add">+ Añadir concepto de albañilería</button>
     <div class="grid4" style="margin-top:10px">
       <div class="field"><label>Material auxiliar (mortero, yeso, cemento)</label>
-        <input type="number" id="f-alb-mat" min="0" step="0.01" value="0"></div>
+        <input type="number" id="f-alb-mat" inputmode="decimal" min="0" step="0.01" value="0"></div>
       <div class="field"><label>Máquinas corte/perforación</label>
-        <input type="number" id="f-alb-maq" min="0" step="0.01" value="0"></div>
+        <input type="number" id="f-alb-maq" inputmode="decimal" min="0" step="0.01" value="0"></div>
       <div class="field"><label>Andamio / medio elevador (opcional)</label>
-        <input type="number" id="f-alb-e1" min="0" step="0.01" value="0"></div>
+        <input type="number" id="f-alb-e1" inputmode="decimal" min="0" step="0.01" value="0"></div>
       <div class="field"><label>Retirada de residuos (opcional)</label>
-        <input type="number" id="f-alb-e2" min="0" step="0.01" value="0"></div>
+        <input type="number" id="f-alb-e2" inputmode="decimal" min="0" step="0.01" value="0"></div>
     </div>
     <p class="hint">Colocación de tubo corrugado y cajas de empalme: incluidas en mano de obra (aparece como «Incluido» en el PDF).</p>
   </section>
@@ -560,7 +615,7 @@
     <div class="grid2" style="margin-top:14px">
       <div class="field"><label>Descuento comercial</label>
         <div class="row-flex" style="margin:0">
-          <input type="number" id="f-desc-val" min="0" step="0.01" value="0" style="min-width:0">
+          <input type="number" id="f-desc-val" inputmode="decimal" min="0" step="0.01" value="0" style="min-width:0">
           <select id="f-desc-tipo" style="flex:0 0 auto;width:auto"><option value="%">%</option><option value="EUR">€</option></select>
         </div></div>
       <div class="field"><label>Redondeo del total</label>
@@ -568,6 +623,14 @@
           <option value="1">A 1</option><option value="10">A 10</option>
           <option value="x9">A X9 € (precio psicológico)</option></select></div>
     </div>
+    <details class="block" style="margin-top:14px"><summary>Condiciones y desglose del PDF</summary>
+      <div class="field" style="margin-top:10px"><label for="f-condiciones">Condiciones al pie del presupuesto (una por línea)</label>
+        <textarea id="f-condiciones" rows="3">Pago: 50% a la entrega de materiales / 50% al finalizar.
+Garantía de 3 años en la instalación.
+Precio sujeto a no conformidades ocultas.</textarea></div>
+      <label class="mopt" style="margin-top:10px"><input type="checkbox" id="f-pdf-desglose">
+        Desglosar «De los cuales — material / mano de obra» en el PDF del cliente</label>
+    </details>
     <div class="actions-grid">
       <button type="button" class="btn primary" id="btn-preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Vista previa del PDF</button>
       <button type="button" class="btn pdf" id="btn-pdf"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar PDF</button>
@@ -587,22 +650,32 @@
         <label class="mopt"><input type="radio" name="iva" value="21"> 21% — general</label>
         <label class="mopt"><input type="radio" name="iva" value="0"> Sin IVA</label>
       </div>
+      <label class="mopt" style="margin-top:8px"><input type="checkbox" id="f-iva-mixto">
+        Doble IVA en factura: parte al 10% (rehabilitación) + resto al 21%
+        <span class="tt" tabindex="0" data-tip="Reparte la base imponible en dos líneas de IVA dentro del mismo documento: ejecución de obra de rehabilitación de vivienda (10%) y suministro de materiales u obra nueva (21%). Pensado para facturas de obra mixta.">?</span></label>
+      <div class="row-flex" id="f-iva-p10-wrap" style="display:none;margin:8px 0 0">
+        <label for="f-iva-p10" style="flex:0 0 auto">Base al 10%</label>
+        <input type="number" id="f-iva-p10" inputmode="decimal" min="0" max="100" step="5" value="60" style="width:80px">
+        <span style="flex:0 0 auto;font-weight:600">%</span>
+        <span class="hint" style="flex:1">el resto de la base se factura al 21%</span>
+      </div>
     </div>
     <div class="grid3" style="margin-top:14px">
       <div class="field"><label>Descuento por volumen
         <span class="tt" tabindex="0" data-tip="Se aplica automáticamente cuando la obra lleva más de 60 enchufes (gran vivienda, local…). Pon 0 para desactivarlo.">?</span></label>
         <div class="row-flex" style="margin:0">
-          <input type="number" id="f-desc-vol" min="0" max="30" step="0.5" value="5" style="min-width:0">
+          <input type="number" id="f-desc-vol" inputmode="decimal" min="0" max="30" step="0.5" value="5" style="min-width:0">
           <span style="flex:0 0 auto;font-weight:600">%</span>
         </div></div>
       <div class="field"><label>Estado</label>
         <input type="text" id="f-desc-vol-estado" readonly tabindex="-1" value="Inactivo (≤60 enchufes)"></div>
       <div class="field"><label>Beneficio sobre materiales (#29)
-        <span class="tt" tabindex="0" data-tip="Margen añadido sobre la parte de materiales antes de descuentos e IVA. Con una marca distinta de Miluz, el resumen muestra además el coste estimado con precios Miluz.">?</span></label>
+        <span class="tt" tabindex="0" data-tip="Margen añadido sobre la parte de materiales (compra) antes de descuentos e IVA. Recomendado 25–35 %. Es interno: no aparece en el PDF del cliente. Con una marca distinta de Miluz, el resumen muestra además el coste estimado con precios Miluz.">?</span></label>
         <div class="row-flex" style="margin:0">
-          <input type="number" id="f-margen" min="0" max="200" step="0.5" value="0" style="min-width:0">
+          <input type="number" id="f-margen" inputmode="decimal" min="0" max="200" step="0.5" value="25" style="min-width:0">
           <span style="flex:0 0 auto;font-weight:600">%</span>
-        </div></div>
+        </div>
+        <small id="margen-hint" style="display:block;color:var(--warn);font-weight:600"></small></div>
     </div>
     <div class="resumen" style="margin-top:18px">
       <table aria-live="polite">
@@ -698,7 +771,7 @@
   <div class="modal-box">
     <div class="modal-head">
       <h3>Vista previa del presupuesto</h3>
-      <button type="button" class="btn" id="btn-share-m2" onclick="sharePDF()" title="Compartir o enviar por email">Enviar</button>
+      <button type="button" class="btn" id="btn-share-m2" title="Compartir o enviar por email">Enviar</button>
       <button type="button" class="btn pdf" id="btn-modal-dl">Descargar</button>
       <button type="button" class="btn" id="btn-modal-x" aria-label="Cerrar">Cerrar</button>
     </div>
@@ -706,6 +779,11 @@
   </div>
 </div>
 <div id="loading-pdf">Generando PDF…</div>
+<div id="sw-update" role="status">
+  <span>Nueva versión de la app disponible.</span>
+  <button type="button" class="btn primary push" id="btn-sw-reload">Recargar</button>
+  <button type="button" class="btn" id="btn-sw-x" aria-label="Descartar aviso">×</button>
+</div>
 <div id="toast-wrap" aria-live="polite"></div>
 <div id="modal-tipo" role="dialog" aria-modal="true" aria-label="Elegir formato del documento">
   <div class="modal-box">
@@ -715,6 +793,8 @@
         <span class="tipo-desc">Oferta con validez, exclusiones, cronograma y firmas de aceptación</span></button>
       <button type="button" class="btn primary" id="btn-dl-fact">Descargar como Factura
         <span class="tipo-desc">Documento de cobro con hash encadenado Veri*factu</span></button>
+      <button type="button" class="btn" id="btn-dl-interno">PDF interno (coste y margen)
+        <span class="tipo-desc">Copia para mí: beneficio sobre materiales, coste estimado y coeficiente — no enviar al cliente</span></button>
       <button type="button" class="btn" id="btn-dl-cancel">Cancelar</button>
     </div>
   </div>
@@ -725,7 +805,13 @@
       <h3>Mis obras — presupuestos guardados</h3>
       <button type="button" class="btn" id="btn-works-x" aria-label="Cerrar">Cerrar</button>
     </div>
-    <div class="modal-body" id="works-list"></div>
+    <div class="modal-body">
+      <div class="row-flex" style="margin-bottom:10px">
+        <input type="search" id="works-filtro" placeholder="Buscar por nº (PE-2026-…) o cliente…" style="flex:1;min-width:150px" aria-label="Buscar obra">
+        <button type="button" class="btn primary" id="btn-nuevo-pe-m" title="Guarda la obra actual y empieza un presupuesto en blanco">+ Nuevo presupuesto</button>
+      </div>
+      <div id="works-list"></div>
+    </div>
   </div>
 </div>
 <div id="modal-import" role="dialog" aria-modal="true" aria-label="Importar esquema JSON">
@@ -738,7 +824,55 @@
       <div id="imp-preview"></div>
       <div class="row-flex">
         <button type="button" class="btn primary" id="btn-imp-ok">Aplicar al formulario</button>
-        <button type="button" class="btn" id="btn-imp-cancel2" onclick="document.getElementById('modal-import').classList.remove('show')">Cancelar</button>
+        <button type="button" class="btn" id="btn-imp-cancel2">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="modal-precios" role="dialog" aria-modal="true" aria-label="Actualizar precios de referencia">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Actualizar precios de referencia</h3>
+      <button type="button" class="btn" id="btn-precios-x" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" style="margin-top:0">Pega el texto copiado de la web de Leroy Merlin (nombres y precios de los productos). La app detecta los artículos conocidos, quita el IVA (÷1,21) y recalibra los precios de referencia €/m y €/ud de las filas. <b id="pe-refp-fecha"></b></p>
+      <textarea id="precios-texto" rows="7" style="width:100%" placeholder="Cable LEXMAN H07V-K 100 metros 2,5 mm² … 47,56 €&#10;Tubo corrugado 20 mm 100 m … 13,21 €&#10;Diferencial Schneider 2P 40A 30mA … 30,25 €"></textarea>
+      <div class="row-flex" style="margin:10px 0">
+        <button type="button" class="btn primary" id="btn-precios-an">Analizar listado</button>
+        <button type="button" class="btn" id="btn-precios-ap" disabled>Aplicar seleccionados</button>
+      </div>
+      <div id="precios-diff"></div>
+      <div id="precios-hist"></div>
+    </div>
+  </div>
+</div>
+<div id="modal-facturas" role="dialog" aria-modal="true" aria-label="Libro de facturas">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Facturación — libro de facturas</h3>
+      <button type="button" class="btn" id="btn-facturas-x" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" style="margin-top:0">Facturas emitidas con hash encadenado Veri*factu. Marca las cobradas (con fecha de cobro) para llevar el libro de cara al gestor; «Exportar libro» genera un CSV con todas.</p>
+      <div id="facturas-list"></div>
+      <div class="row-flex" style="margin-top:12px">
+        <button type="button" class="btn primary" id="btn-fact-csv">Exportar libro (CSV)</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="modal-diag" role="dialog" aria-modal="true" aria-label="Diagnóstico de la aplicación">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Diagnóstico</h3>
+      <button type="button" class="btn" id="btn-diag-x" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <div id="diag-info"></div>
+      <div class="row-flex" style="margin-top:12px">
+        <button type="button" class="btn primary" id="btn-diag-copy">Copiar informe</button>
+        <button type="button" class="btn mini danger" id="btn-diag-clear">Borrar errores registrados</button>
       </div>
     </div>
   </div>

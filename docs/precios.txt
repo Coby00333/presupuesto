@@ -1,56 +1,94 @@
-precios:
+================================================================================
+  PRECIOS DE REFERENCIA · INSTALACIONES ELÉCTRICAS
+  Carly Díaz Gutiérrez · Instalador electricista · RIIA 0023979287
+  Actualizado: 09/11/2026 (material: Leroy Merlin)
+  Fuentes: Leroy Merlin 09/11/2026 — precios SIN IVA, convertidos del PVP con
+  IVA (÷1,21); pueden variar por tienda y oferta (Black Friday hasta 16/11).
+  Ampliado 09/11/2026 con la verificación web de LM Málaga (stock y PVP de la
+  tienda): H07Z1-K, mangueras H07RV-K/RZ1-K, tubo rígido, canaletas, cajas
+  estancas, bornas DIN y diferencial Schneider (el listado fuente, «nuevos
+  precios.txt», ya está integrado y retirado).
+  Mano de obra y servicios: «Presupuesto Arganda 32 v2 (único)».
+  Fichero único de tarifas de la app (el catálogo ATMOSS, precios.json y el
+  listado LM de origen se retiraron; los PVPR ATMOSS viven ya en js/data.js).
+================================================================================
 
-3 Cables (L,T,N)  libre de halógenos TOP CABLE H07Z1-K 2.5mm² 200M 264 euros
+--- 1 · CABLES Y MANGUERAS · compra Leroy Merlin 09/11/2026 (por CABLE, sin IVA)
+Interior H07V-K (LEXMAN):
+  Cable H07V-K 1,5 mm² ............... rollo 100 m .......  24,45 €   → 0,24 €/m
+  Cable H07V-K 2,5 mm² ............... rollo 100 m .......  39,31 €   → 0,39 €/m
+  Cable H07V-K 4 mm² ................. rollo 25 m ........  22,14 €   → 0,89 €/m
+  Cable H07V-K 6 mm² ................. rollo 25 m ........  23,96 €   → 0,96 €/m
+Interior libre de halógenos H07Z1-K (TOP CABLE):
+  Cable H07Z1-K 1,5 mm² .............. rollo 100 m .......  25,54 €   → 0,26 €/m
+  Cable H07Z1-K 2,5 mm² .............. rollo 100 m .......  40,48 €   → 0,40 €/m
+  Cable H07Z1-K 4 mm² ................ rollo 100 m .......  59,50 €   → 0,60 €/m
+  Cable H07Z1-K 6 mm² ................ rollo 100 m .......  85,12 €   → 0,85 €/m
+Mangueras de 3 conductores (LEXMAN; 1 m de línea = 1 m, sin ×3):
+  Manguera H07RV-K 3×2,5 mm² ......... rollo 100 m ...... 136,36 €   → 1,36 €/m
+  Manguera H07RV-K 3×6 mm² ........... rollo 25 m ....... 100,00 €   → 4,00 €/m
+  Manguera RZ1-K 3×2,5 mm² (enterrar). rollo 50 m .......  85,12 €   → 1,70 €/m
+  (PVP web con IVA: H07V-K 29,58 · 47,56 · 26,79 · 28,99 — H07Z1-K 30,90 ·
+  48,98 · 72,00 · 103,00 — mangueras 165 · 121 · 103,00. La app trabaja
+  sin IVA y lo suma al final; 39,31 € + 21 % = 47,56 €.)
+  Un circuito L+T+N de cable unipolar lleva 3 conductores: para presupuestar
+  el juego completo multiplica los metros de circuito por 3 (o mete 3× los
+  metros). Con manguera multiconductor no hace falta: ya trae los 3 juntos.
 
-3 Cables (L,T,N)  libre de halógenos TOP CABLE H07Z1-K 1.5mm² 200M  168 euros
+--- 2 · TUBOS Y CANALETAS · compra Leroy Merlin 09/11/2026 (sin IVA) ---------
+  Tubo corrugado PVC Ø20 mm .......... rollo 100 m ......  13,21 €   → 0,13 €/m
+  Tubo corrugado PVC Ø25 mm .......... rollo 75 m .......  12,80 €   → 0,17 €/m
+  Tubo corrugado PVC Ø32 mm .......... rollo 50 m .......  15,69 €   → 0,31 €/m
+  Tubo corrugado forrado Ø20 mm ...... rollo 100 m ......  18,92 €   → 0,19 €/m
+  Tubo corrugado forrado Ø25 mm ...... rollo 75 m .......  18,42 €   → 0,25 €/m
+  Tubo rígido PVC gris Ø20 mm ........ vara 2,4 m ........  1,31 €   → 0,55 €/m
+  Tubo rígido PVC gris Ø25 mm ........ vara 2,4 m ........  1,81 €   → 0,75 €/m
+  Canaleta superficie 15×15 (TEHALIT)  pieza 2 m ........  3,21 €   → 1,61 €/m
 
-3 Cables (L,T,N)  libre de halógenos TOP CABLE H07Z1-K 4mm² 75 euros	25m
+--- 3 · MECANISMOS · compra (MILUZ, blancos) ---------------------------------
+  Pack 5 enchufes .................... unidad de compra .  15,00 €   → 3,00 €/ud
+  Pack 5 int./conmutadores ........... unidad de compra .  15,00 €   → 3,00 €/ud
+  Doble conmutador ................... por unidad .......   6,00 €
+  Cruzamiento ........................ por unidad .......   6,00 €
+  Toma TV/Sat ........................ por unidad .......  15,00 €
+  Toma RJ45 .......................... por unidad .......  10,00 €
+  Marco de 2 módulos ................. por unidad .......   2,00 €
+  Marco de 3 módulos ................. por unidad .......   3,00 €
+  Marco de 4 módulos ................. por unidad .......   4,00 €
 
-3 Cables (L,T,N)  libre de halógenos TOP CABLE H07Z1-K 6mm² 90 euros	25m
+--- 4 · CUADRO Y ACCESORIOS · compra (cajas FAMATEL: LM 09/11/2026) ----------
+  Cuadro eléctrico básico ............ por unidad ....... 220,00 €
+  Diferencial SCHNEIDER 2P 40A 30mA .. por unidad ........  25,00 €  (PVP 30,25 € c/IVA)
+  Cajillo universal 66×66 ............ por unidad ........   0,17 €  (PVP 0,20 € c/IVA)
+  Cajas de derivación (FAMATEL) ...... por unidad ........   0,83–4,47 €
+  Caja conexión estanca IP55 100×100 . por unidad ........   1,81 €  (1,07–3,13 € según tamaño)
+  Borna de carril DIN 6 mm² .......... por unidad ........   0,76 €  (PVP 0,92 € c/IVA)
+  Cinta (rollo) ...................... por unidad ........   2,00 €
+  Bridas (bolsa) ..................... por unidad ........   6,00 €
 
+--- 5 · MANO DE OBRA · tarifas del Presupuesto Arganda 32 v2 -----------------
+  Punto de luz (preinstalación: corrugado + cable) ......  10,00 €/ud
+  Canalización con tubo corrugado (por zona/jornada) .... 180,00 €/ día de trabajo
+  Caja de registro — instalación y cableado ..............  54,00 €/ud
+      (desglose: 24,00 € de material + 30,00 € de M.O. por unidad)
 
+--- 6 · MECANISMOS INSTALADOS · todo incluido (Arganda 32 v2) ----------------
+  (marca + caja + tubo + cable + mano de obra, precio por punto terminado)
+  Base de enchufe 16 A con toma de tierra ...............  25,00 €/ud
+  Interruptor simple .....................................  20,00 €/ud
+  Conmutador — conmutación de 2 puntos ..................  22,00 €/ud
+  Cruzamiento — 3 o más puntos ..........................  23,00 €/ud
+  Timbre / zumbador (con pulsador) ......................  20,00 €/ud
 
-cuadro eléctrico básico 220 euros
+--- 7 · SERVICIOS Y TRAMITACIÓN · Arganda 32 v2 -------------------------------
+  Tramitación administrativa y Boletín Eléctrico (CIE) .. 250,00 € (plazo 1 sem)
 
-cajillos 1 euro
+  Notas de servicios (sin precio fijo en el presupuesto):
+  · Colocación de luminarias (suministradas por la promotora) → por confirmar.
+  · Preinstalación ICT, climatización y alumbrado exterior → por confirmar.
+  · Condiciones: pago 50 % inicio / 50 % fin · garantía 3 años.
 
-cajas de derivación 2 euros
-
-cinta 2 euros 
-
-bridas 6 euros 
-
-
-Todos los mecanismos son marca MILUZ blancos:
-pack 5 enchufes blanco 15 euros
-
-pack 5 inter/conmutador  15 euros
-
-doble conmutador 6 euros
-
-cruzamiento 6 euros
-
-toma TV/Sat 15 euros
-
-Toma Rj45 10
-
-marcos de 2 = 2 euros
-de 3 = 3 euros 
-de 4 = 4 euros
-
-Tubo corrugado de PVC LEXMAN 20 mm 100 m 18 euros
-
-Tubo corrugado de PVC LEXMAN 32 mm 50 m 20 euros
- 
-Tubo corrugado forrado LEXMAN 25 mm 75 m 25 euros
-
-
-
-
-
-
-
-
-
-
-
+================================================================================
+  Los importes «€/m» derivados de las secciones 1–2 son los precios de
+  referencia que usa la app en Canalizaciones (chips €/m de tubo y cable).
+================================================================================

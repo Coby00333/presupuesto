@@ -3,3 +3,4 @@ promp.txt
 node_modules/
 nul
 docs/CATALOGO-*.pdf
+tests/e2e/out/

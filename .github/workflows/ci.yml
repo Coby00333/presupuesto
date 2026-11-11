@@ -1,0 +1,51 @@
+# .github/workflows/ci.yml — CI de GitHub Actions (#2 mejoras2)
+# Dos jobs: verificación local completa (sintaxis + tsc + tests, lo mismo que
+# `npm run check`) y un E2E con Playwright que descarga un PDF real de la app
+# abierta por file://. Las dependencias viven en scripts/package.json.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Sintaxis + tipado + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependencias (scripts/)
+        run: npm install
+        working-directory: scripts
+      - name: node scripts/check.mjs
+        run: node scripts/check.mjs
+
+  e2e:
+    name: E2E descarga de PDF (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependencias (scripts/)
+        run: npm install
+        working-directory: scripts
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: scripts
+      - name: node tests/e2e/pdf.e2e.mjs
+        run: node tests/e2e/pdf.e2e.mjs
+        env:
+          CI: '1'
+      - name: Subir PDF generado como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-e2e
+          path: tests/e2e/out/
+          if-no-files-found: ignore

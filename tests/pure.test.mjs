@@ -20,7 +20,8 @@ const src =
     .join('\n;\n')
   + `\n;({ cur,
       letra, totalLetra, chipVal, rebtSug, seccionCaida, sugerirMarcos,
-      redondeoTotal, totalsForPure, ganttWeeks, hashFactura });`;
+      redondeoTotal, totalsForPure, ivaMix, totalsForMix, ganttWeeks,
+      hashFactura, estimarMetros, parseLM });`;
 
 const sandbox = { console, crypto: globalThis.crypto ?? webcrypto, TextEncoder, TextDecoder };
 vm.createContext(sandbox);
@@ -126,6 +127,36 @@ test('totalsForPure: descuentos, IVA y redondeo final', () => {
   assert.equal(api.totalsForPure(100, 0, 0, 10, 0).total, 110);
 });
 
+/* ---------- IVA mixto (#4 mejoras2) ---------- */
+test('ivaMix: reparto 60/40 sobre 1000 → 60 € + 84 € = 144 €', () => {
+  const m = api.ivaMix(1000, 60);
+  assert.equal(m.b10, 600);
+  assert.equal(m.b21, 400);
+  assert.equal(m.iva10, 60);
+  assert.equal(m.iva21, 84);
+  assert.equal(m.iva, 144);
+});
+test('ivaMix: límites y entradas de formulario', () => {
+  assert.equal(api.ivaMix(1000, 150).b10, 1000);   // se recorta al 100 %
+  assert.equal(api.ivaMix(1000, -5).b10, 0);       // y al 0 %
+  assert.equal(api.ivaMix(1000, '55,5').b10, 555); // coma decimal tolerada
+  assert.equal(api.ivaMix(1000, null).p10, 60);    // sin valor: 60 % por defecto
+  assert.equal(api.ivaMix(1000, '').p10, 0);       // vacío → 0 (cadena no numérica)
+});
+test('totalsForMix: mix=true aplica las dos líneas y el redondeo', () => {
+  const t = api.totalsForMix(1000, 0, 0, 10, 0, true, 60);
+  assert.equal(t.baseDes, 1000);
+  assert.equal(t.iva, 144);                        // 600×10% + 400×21%
+  assert.equal(t.total, 1144);
+  assert.ok(t.ivaMix);
+  assert.equal(t.ivaMix.iva21, 84);
+});
+test('totalsForMix: mix=false equivale a totalsForPure (ivaMix null)', () => {
+  const t = api.totalsForMix(1000, 50, 50, 21, 'x9', false, 60);
+  assert.equal(t.ivaMix, null);
+  assert.equal(t.total, 1089);                     // mismo caso que totalsForPure
+});
+
 /* ---------- Gantt ---------- */
 test('ganttWeeks: interpreta textos de plazo', () => {
   deepEqual(api.ganttWeeks('3-4 semanas tras picado'), { min: 3, max: 4 });
@@ -146,6 +177,69 @@ test('hashFactura: SHA-256 encadenado determinista', async () => {
   assert.notEqual(h1, h2);                        // cambia con el hash previo
   const h3 = await api.hashFactura(h1, 'FA-2026-003|2026-11-02|900|1089');
   assert.notEqual(h2, h3);                        // mismo previo, datos distintos
+});
+
+/* ---------- estimador de metros desde puntos (#3 mejoras) ---------- */
+test('estimarMetros: vivienda típica 90 m² (20 ench + 10 int + 12 luz)', () => {
+  const r = api.estimarMetros(20, 10, 12, 90);
+  assert.equal(r.puntos, 42);
+  assert.equal(r.tubo, 340);        // 42×7 + 90×0,5 = 339 → 340
+  assert.equal(r.cab15, 180);       // (12+10)×7×1,15 = 177,1 → 180
+  assert.equal(r.cab25, 160);       // 20×7×1,15 = 161 → 160
+  assert.equal(r.cajillos, 42);     // uno por mecanismo
+  assert.equal(r.jornadas, 5);      // ceil(340/80)
+});
+test('estimarMetros: mínimo de tubo y jornada aunque sea pequeño', () => {
+  const r = api.estimarMetros(2, 1, 1, 30);
+  assert.equal(r.tubo, 50);         // mínimo 50 m
+  assert.equal(r.jornadas, 1);
+  assert.equal(r.cajillos, 4);
+});
+test('estimarMetros: sin puntos → todo a cero (sin jornadas)', () => {
+  const r = api.estimarMetros(0, 0, 0, 90);
+  assert.equal(r.puntos, 0);
+  assert.equal(r.jornadas, 0);      // no cobra jornada si no hay trabajo
+  assert.equal(r.tubo, 50);         // el tubo conserva el mínimo
+});
+test('estimarMetros: acepta cadenas y negativos de un formulario', () => {
+  const r = api.estimarMetros('8', '3', '4', '60');
+  assert.equal(r.puntos, 15);
+  assert.equal(r.cab25, 60);        // 8×7×1,15 = 64,4 → 60
+  const n = api.estimarMetros(-5, 0, 0, 0);
+  assert.equal(n.puntos, 0);        // negativos se recortan a 0
+});
+
+/* ---------- actualizador de precios (#6 mejoras) ---------- */
+const PAT_LM = {
+  cab25: { re: /H07V-?K[^\n]*2[,.]5\s*mm/i, modo: 'm' },
+  difcomp: { re: /diferencial[^\n]*30\s*mA/i, modo: 'ud' },
+};
+test('parseLM: cable por metros — PVP del rollo ÷ IVA ÷ metros', () => {
+  const r = api.parseLM('Cable LEXMAN H07V-K 100 metros 2,5 mm² 47,56 €/Rollo o 0,48 €/Metro', PAT_LM);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].id, 'cab25');
+  assert.equal(r[0].pvp, 47.56);
+  assert.equal(r[0].metros, 100);            // "100 metros", no confunde con "2,5 mm"
+  assert.equal(r[0].pvpSinIVA, 39.31);       // 47,56 ÷ 1,21
+  assert.equal(r[0].final, 0.39);            // 39,31 / 100 m
+});
+test('parseLM: por unidades — diferencial con PVP', () => {
+  const r = api.parseLM('Diferencial Schneider 2P 40 A 30 mA 30,25 €', PAT_LM);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].pvpSinIVA, 25);
+  assert.equal(r[0].final, 25);              // modo 'ud': sin dividir metros
+});
+test('parseLM: modo metros sin longitud de rollo → final 0 (se ignora)', () => {
+  const r = api.parseLM('Cable H07V-K 2,5 mm² precio a consultar en tienda', PAT_LM);
+  assert.equal(r.length, 0);                 // sin € no hay PVP
+  const r2 = api.parseLM('Cable H07V-K 2,5 mm² 47,56 €', PAT_LM);
+  assert.equal(r2.length, 1);
+  assert.equal(r2[0].metros, 0);
+  assert.equal(r2[0].final, 0);              // sin metros no puede calcular €/m
+});
+test('parseLM: texto vacío o sin patrones conocidos', () => {
+  assert.equal(api.parseLM('', PAT_LM).length, 0);
+  assert.equal(api.parseLM('Bombilla LED 12 W 9,99 €', PAT_LM).length, 0);
 });
 
 /* ---------- moneda ---------- */

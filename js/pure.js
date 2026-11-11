@@ -125,6 +125,29 @@ function totalsForPure(base,descE,dvolE,ivaP,rnd){
   return {base,desc,baseDes,iva,total};
 }
 
+/* ---- IVA mixto (#4 mejoras2) ----
+ *  Reparte la base imponible entre el 10% (ejecución de obra de rehabilitación
+ *  de vivienda) y el 21% (suministro de materiales / obra nueva).
+ *  @param {number} base base imponible (tras descuentos)
+ *  @param {number|string} p10 porcentaje de la base que va al 10% (0–100)
+ *  @returns {{p10:number,b10:number,b21:number,iva10:number,iva21:number,iva:number}} */
+function ivaMix(base,p10){
+  const p=Math.min(100,Math.max(0,parseFloat(String(p10==null?60:p10).replace(',','.'))||0));
+  const b10=base*p/100, b21=base-b10;
+  const iva10=b10*0.10, iva21=b21*0.21;
+  return {p10:p,b10,b21,iva10,iva21,iva:iva10+iva21};
+}
+/** Como totalsForPure pero con dos líneas de IVA cuando mix=true (usa 10%/21%).
+ *  @returns {{base:number,desc:number,baseDes:number,iva:number,ivaMix:Object|null,total:number}} */
+function totalsForMix(base,descE,dvolE,ivaP,rnd,mix,p10){
+  if(!mix) return Object.assign(totalsForPure(base,descE,dvolE,ivaP,rnd),{ivaMix:null});
+  const desc=descE+dvolE;
+  const baseDes=base-desc;
+  const m=ivaMix(baseDes,p10);
+  const total=redondeoTotal(baseDes+m.iva,rnd);
+  return {base,desc,baseDes,iva:m.iva,ivaMix:m,total};
+}
+
 /* ---- Gantt (#39): semanas a partir de textos de plazo ----
  *  "3-4 semanas tras picado" → {min:3,max:4}. @param {string} s
  *  @returns {{min:number,max:number}|null} */
@@ -134,6 +157,65 @@ function ganttWeeks(s){
   if(!m) return null;
   const a=parseInt(m[1],10), b=m[2]?parseInt(m[2],10):a;
   return {min:Math.min(a,b),max:Math.max(a,b)};
+}
+
+/* ---- estimador de metros desde puntos (#3 mejoras) ----
+ *  Regla de visita sin plano: ≈7 m de recorrido de tubo por punto + 0,5 m/m²
+ *  de vivienda (mínimo 50 m); el cable es el mismo recorrido con 15 % de margen
+ *  (el ×3 L+T+N se aplica aparte con la casilla); un cajillo por mecanismo y
+ *  una jornada de canalización por cada 80 m de tubo.
+ *  @param {number|string} ench bases de enchufe previstas
+ *  @param {number|string} int_ interruptores / conmutadores
+ *  @param {number|string} luz puntos de luz
+ *  @param {number|string} m2 superficie de la vivienda
+ *  @returns {{puntos:number,tubo:number,cab15:number,cab25:number,cajillos:number,jornadas:number}} */
+function estimarMetros(ench,int_,luz,m2){
+  const n=x=>Math.max(0,parseFloat(x)||0);
+  ench=n(ench); int_=n(int_); luz=n(luz); m2=n(m2);
+  const puntos=ench+int_+luz;
+  const r10=x=>Math.round(x/10)*10;
+  const tubo=r10(Math.max(50,puntos*7+m2*0.5));
+  return { puntos, tubo,
+    cab15:r10((luz+int_)*7*1.15),
+    cab25:r10(ench*7*1.15),
+    cajillos:puntos,
+    jornadas:puntos?Math.max(1,Math.ceil(tubo/80)):0 };
+}
+
+/* ---- actualizador de precios (#6 mejoras): parseo de listados pegados ----
+ *  Analiza un listado de tienda (p. ej. Leroy Merlin copiado del navegador)
+ *  contra una tabla de patrones {id:{re,modo}} (ver REFP_PAT en data.js):
+ *   - re casa el NOMBRE del producto;
+ *   - el PVP (con IVA) es el primer "12,34 €" desde el nombre;
+ *   - los metros del rollo se detectan como "100 m / metros / mts" desde el
+ *     nombre ("mm" no cuenta: exige frontera de palabra tras la m);
+ *   - modo 'm' → €/m = PVP÷1,21÷metros;  modo 'ud' → €/ud = PVP÷1,21.
+ *  Busca en los 300 caracteres siguientes al nombre (el precio suele estar
+ *  en la misma línea o en la siguiente). Si un producto no trae metros en
+ *  su línea, modo 'm' queda a 0 y el diff de la app lo ignora.
+ *  @param {string} texto listado pegado
+ *  @param {Record<string,{re:RegExp,modo:'m'|'ud'}>} patterns
+ *  @returns {Array<{id:string,pvp:number,pvpSinIVA:number,metros:number,final:number}>} */
+function parseLM(texto, patterns){
+  const out=[];
+  const T=String(texto||'');
+  Object.entries(patterns||{}).forEach(([id,pat])=>{
+    const m=T.match(pat.re);
+    if(!m||m.index==null) return;
+    const despues=T.slice(m.index,m.index+300);
+    const mp=despues.match(/(\d+(?:[.,]\d+)?)\s*€/);
+    if(!mp) return;
+    const pvp=parseFloat(mp[1].replace(',','.'));
+    if(!(pvp>0)) return;
+    const mm=despues.match(/(\d+(?:[.,]\d+)?)\s*(?:metros|mtos|mts|m)\b/i);
+    const metros=mm?parseFloat(mm[1].replace(',','.')):0;
+    const pvpSinIVA=Math.round(pvp/1.21*100)/100;
+    let final=0;
+    if(pat.modo==='m'){ if(metros>0) final=Math.round(pvpSinIVA/metros*100)/100; }
+    else final=pvpSinIVA;
+    out.push({id,pvp,pvpSinIVA,metros,final});
+  });
+  return out;
 }
 
 /* ---- hash encadenado Veri*factu (#37) ----

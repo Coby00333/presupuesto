@@ -62,6 +62,11 @@ function renderGrupos(){
         :(p.refp!=null
           ?`<span class="chip-opt sel" data-refpr title="Precio de referencia ${nfC.format(p.refp)} ${cur().sym}/${unit} — el precio libre lo sustituye">${nfC.format(p.refp)} ${cur().sym}/${unit}</span>`
           :'');
+      /* atajos rápidos para partidas por metros (#9 mejoras) */
+      const quick=p.unit==='m'?`<span class="qks" aria-label="Sumar metros">
+          <button type="button" class="btn mini qk" data-quick="10" data-qk-id="${p.id}">+10</button>
+          <button type="button" class="btn mini qk" data-quick="25" data-qk-id="${p.id}">+25</button>
+          <button type="button" class="btn mini qk" data-quick="50" data-qk-id="${p.id}">+50</button></span>`:'';
       box.innerHTML=`
         <div class="p-head">
           <span class="p-name">${esc(p.name)}${tip} <small>(${unit})</small></span>
@@ -69,15 +74,28 @@ function renderGrupos(){
         </div>
         <div class="p-row">
           <span class="qty-wrap"><label>Cant.</label>
-            <input type="number" min="0" step="${p.unit==='m'?0.5:1}" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}"></span>
+            <input type="number" inputmode="decimal" min="0" step="${p.unit==='m'?0.5:1}" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}">${p.ltn?`
+            <label class="ltn" title="Juego completo de circuito: multiplica los metros ×3 (fase + neutro + tierra). Escribe los metros de RECORRIDO del circuito."><input type="checkbox" id="x3-${p.id}" data-ltn="${p.id}"> ×3 L+T+N</label>`:''}
+            ${quick}</span>
           <div class="chips">${chips}</div>
           <span class="qty-wrap free-wrap" title="Escribe tu propio precio${p.unit==='m'?' por metro':''}: si lo rellenas sustituye al nivel elegido">
             <label>Precio libre${p.unit==='m'?' €/m':''}</label>
-            <input type="number" min="0" step="0.1" id="free-${p.id}" data-free="${p.id}" placeholder="—"></span>
+            <input type="number" inputmode="decimal" min="0" step="0.1" id="free-${p.id}" data-free="${p.id}" placeholder="—"></span>
         </div>`;
       host.appendChild(box);
     });
+    /* líneas libres de este grupo (#10 mejoras) */
+    host.appendChild(glibEl(g.div));
   });
+}
+/** Contenedor de líneas libres de un grupo + botón «+ Añadir línea» (#10 mejoras). */
+function glibEl(div){
+  const wrap=document.createElement('div');
+  const sub=document.createElement('div'); sub.className='g-libres'; sub.dataset.glib=div; wrap.appendChild(sub);
+  const btn=document.createElement('button'); btn.type='button'; btn.className='btn mini lib-add';
+  btn.dataset.libadd=div; btn.textContent='+ Añadir línea';
+  wrap.appendChild(btn);
+  return wrap;
 }
 function renderAlb(){
   const host=$('#alb-rows'); if(!host) return;
@@ -91,10 +109,10 @@ function renderAlb(){
       </div>
       <div class="p-row">
         <span class="qty-wrap"><label>Horas</label>
-          <input type="number" min="0" step="0.5" value="${a.h||0}" data-albh="${esc(a.id)}" title="Horas estimadas"></span>
+          <input type="number" inputmode="decimal" min="0" step="0.5" value="${a.h||0}" data-albh="${esc(a.id)}" title="Horas estimadas"></span>
         <span class="qty-wrap free-wrap" title="Precio por hora de albañilería">
           <label>€/h</label>
-          <input type="number" min="0" step="0.5" value="${a.p!=null?a.p:28}" data-albp="${esc(a.id)}" title="Precio por hora"></span>
+          <input type="number" inputmode="decimal" min="0" step="0.5" value="${(/** @type {any} */(a)).p!=null?(/** @type {any} */(a)).p:28}" data-albp="${esc(a.id)}" title="Precio por hora"></span>
         <button type="button" class="btn mini danger" data-albdel="${esc(a.id)}" title="Eliminar">×</button>
       </div>`;
     host.appendChild(row);
@@ -103,6 +121,7 @@ function renderAlb(){
 function renderLibres(){
   const host=$('#libres-wrap'); if(!host) return;
   host.innerHTML='';
+  $$('.g-libres').forEach(g=>{ g.innerHTML=''; });
   LIBRES.forEach((L,i)=>{
     const row=document.createElement('div'); row.className='partida lib-row';
     row.innerHTML=`
@@ -112,11 +131,13 @@ function renderLibres(){
       </div>
       <div class="p-row">
         <span class="qty-wrap"><label>Precio ${cur().sym}</label>
-          <input type="number" min="0" step="0.01" value="${L.p||0}" data-lib="p" data-i="${i}" aria-label="Precio"></span>
+          <input type="number" inputmode="decimal" min="0" step="0.01" value="${L.p||0}" data-lib="p" data-i="${i}" aria-label="Precio"></span>
         <span class="qty-wrap"><label>Cant.</label>
-          <input type="number" min="0" step="1" value="${L.q||0}" data-lib="q" data-i="${i}" aria-label="Cantidad"></span>
+          <input type="number" inputmode="decimal" min="0" step="1" value="${L.q||0}" data-lib="q" data-i="${i}" aria-label="Cantidad"></span>
         <button type="button" class="btn mini danger" data-libdel="${i}" title="Eliminar">×</button>
       </div>`;
+    /* #10 mejoras: las líneas con grupo caen en su sección; el resto en el bloque global */
+    if(L.g){ const gh=document.querySelector(`.g-libres[data-glib="${L.g}"]`); if(gh){ gh.appendChild(row); return; } }
     host.appendChild(row);
   });
 }
@@ -156,11 +177,11 @@ function renderMec(host){
       </div>
       <div class="p-row">
         <span class="qty-wrap"><label>Cant.</label>
-          <input type="number" min="0" step="1" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}"></span>
+          <input type="number" inputmode="decimal" min="0" step="1" value="${p.qty||0}" id="q-${p.id}" data-qty="${p.id}"></span>
         <div class="chips">${chips}</div>
         <span class="qty-wrap free-wrap" title="Escribe tu propio precio por unidad (mano de obra + material): si lo rellenas sustituye al nivel elegido">
           <label>Precio libre</label>
-          <input type="number" min="0" step="0.1" id="free-${p.id}" data-free="${p.id}" placeholder="—"></span>
+          <input type="number" inputmode="decimal" min="0" step="0.1" id="free-${p.id}" data-free="${p.id}" placeholder="—"></span>
       </div>
       <div class="p-mat" data-mathint></div>`;
     host.appendChild(box);
@@ -176,14 +197,15 @@ function renderMec(host){
       </div>
       <div class="p-row">
         <span class="qty-wrap"><label>Cant.</label>
-          <input type="number" min="0" step="1" value="0" id="mq-${it.id}" data-qty="${it.id}"></span>
+          <input type="number" inputmode="decimal" min="0" step="1" value="0" id="mq-${it.id}" data-qty="${it.id}"></span>
         <div class="chips"><span class="chip-opt sel" data-matpr title="Precio de material de la marca elegida (se actualiza al cambiar de marca)">—</span></div>
         <span class="qty-wrap free-wrap" title="Escribe tu propio precio: si lo rellenas sustituye al precio de la marca">
           <label>Precio libre</label>
-          <input type="number" min="0" step="0.1" id="free-${it.id}" data-free="${it.id}" placeholder="—"></span>
+          <input type="number" inputmode="decimal" min="0" step="0.1" id="free-${it.id}" data-free="${it.id}" placeholder="—"></span>
       </div>`;
     host.appendChild(box);
   });
+  host.appendChild(glibEl('g-mec'));   /* líneas libres del grupo (#10 mejoras) */
   updateMat();
 }
 function updateMat(){
@@ -254,7 +276,7 @@ function renderNivelesEditor(){
   const rows=parts.map(p=>{
     const pr=basePrices(p);
     const cells=pr.map((v,i)=>
-      `<td style="text-align:right"><input type="number" min="0" step="0.01" data-niv="${p.id}" data-idx="${i}" value="${v}"></td>`).join('');
+      `<td style="text-align:right"><input type="number" inputmode="decimal" min="0" step="0.01" data-niv="${p.id}" data-idx="${i}" value="${v}"></td>`).join('');
     return '<tr><td>'+esc(p.name)+'</td>'+cells+'<td style="text-align:right;color:var(--tx2)">—</td>'.repeat(niv-pr.length)+'</tr>';
   }).join('');
   wrap.innerHTML='<table class="mini-table"><thead><tr><th>Partida</th>'+
@@ -294,7 +316,7 @@ function renderRebtAvanzado(){
   const sug=rebtSug(ench,luz);
   if(!sug.pias){ box.hidden=true; box.innerHTML=''; return; }
   const L=num('rebt-l')||18, lim=parseFloat($('#rebt-lim').value)||5;
-  const circ=[];
+  /** @type {[string,number,number,number][]} */ const circ=[];
   for(let i=0;i<sug.tomas;i++) circ.push(['C tomas '+(i+1),3450,5,2.5]);
   for(let i=0;i<sug.lucz;i++) circ.push(['C iluminación '+(i+1),1100,3,1.5]);
   circ.push(['C cocina + horno',5750,5,6]);
@@ -322,17 +344,31 @@ function repriceChips(){
     g.partidas.forEach(p=>{
       const box=document.querySelector(`.partida[data-id="${p.id}"]`); if(!box) return;
       const pr=basePrices(p);
-      const idx=parseInt((box.querySelector('input:checked')||{}).dataset?.idx ?? pr.length-1,10);
+      const idx=parseInt((/** @type {any} */(box.querySelector('input[type=radio]:checked')||{})).dataset?.idx ?? pr.length-1,10);
       box.querySelectorAll('input[type=radio]').forEach((r,i)=>{
         const v=chipVal(pr[i],1); r.value=v;
         const lb=r.closest('.chip-opt'); lb.querySelector('span').textContent=nfC.format(v)+' '+cur().sym;
       });
       const sel=box.querySelectorAll('input[type=radio]')[Math.min(idx,pr.length-1)];
-      if(sel){ sel.checked=true; sel.closest('.chip-opt').classList.add('sel'); }
+      if(sel){ sel.checked=true; sel.closest('.chip-opt').classList.add('sel'); fieldSync(sel); }
     });
   });
   /* los niveles de mecanismos vuelven a incluir el material de la marca */
   if($('#f-marca')) updateMat();
+}
+/* repinta en caliente los chips de precio de referencia (#6 mejoras):
+   tras aplicar overrides (pe-refp) NO se re-renderiza el grupo —se perderían
+   las cantidades escritas—, solo se actualiza el texto del chip data-refpr. */
+function refreshRefpChips(){
+  GRUPOS.forEach(g=>g.partidas.forEach(p=>{
+    if(p.refp==null) return;
+    const chip=document.querySelector(`.partida[data-id="${p.id}"] [data-refpr]`);
+    if(!chip) return;
+    const unit=p.unit==='m'?'m':p.unit;
+    const txt=`${nfC.format(p.refp)} ${cur().sym}/${unit}`;
+    chip.textContent=txt;
+    chip.title=`Precio de referencia ${txt} — el precio libre lo sustituye`;
+  }));
 }
 
 /* ================= cálculo ================= */
@@ -342,7 +378,23 @@ function pPr(id){ const box=document.querySelector(`.partida[data-id="${id}"]`);
   const rp=(PART_BY_ID[id]&&PART_BY_ID[id].refp)||0;
   if(!box) return rp;
   const f=box.querySelector('[data-free]'); const fv=f?(parseFloat(f.value)||0):0; if(fv>0) return fv;
-  const el=box.querySelector('input:checked'); return el?(parseFloat(el.value)||0):rp; }
+  const el=box.querySelector('input[type=radio]:checked'); return el?(parseFloat(el.value)||0):rp; }
+/* cantidad efectiva de una partida: ×3 si la casilla «L+T+N» está marcada (#2 mejoras) */
+function qEffOf(id){ const box=document.querySelector(`.partida[data-id="${id}"]`);
+  const q=pQty(id); const x3=box?box.querySelector('[data-ltn]'):null;
+  return (x3&&x3.checked)?q*3:q; }
+/* estimador de metros desde puntos (#3 mejoras): rellena las filas de g-canal */
+function estimar(){
+  const r=estimarMetros(idv('est-ench'),idv('est-int'),idv('est-luz'),idv('est-m2'));
+  const res=$('#est-res');
+  if(!r.puntos){ if(res) res.textContent='Escribe al menos un punto (enchufe, interruptor o luz).'; return; }
+  const setQ=(id,v)=>setField('q-'+id,v);
+  setQ('tubo23',r.tubo); setQ('cab15',r.cab15); setQ('cab25',r.cab25);
+  setQ('cajillo',r.cajillos); setQ('canaljornada',r.jornadas);
+  ['x3-cab15','x3-cab25'].forEach(id=>setField(id,'1'));
+  if(res) res.textContent=`${r.puntos} puntos → tubo ${r.tubo} m · cable 1,5 ${r.cab15} m ×3 · cable 2,5 ${r.cab25} m ×3 · ${r.cajillos} cajillos · ${r.jornadas} jornada(s)`;
+  calc(); save();
+}
 /* precio de material de un ítem del catálogo según la marca elegida (null = N/D) */
 function matPr(itId){ const sel=$('#f-marca'); const M=sel?(MARCAS[sel.value]||MARCAS.miluz):MARCAS.miluz; return M.p[itId]; }
 /* cantidad de un ítem: la de su partida asociada o la de su propia fila */
@@ -360,9 +412,15 @@ function calc(){
       let qty=0, pr=0, imp=0;
       if(box){
         qty=parseFloat(box.querySelector('[data-qty]').value)||0;
+        const x3=box.querySelector('[data-ltn]');
+        const qEff=(x3&&x3.checked)?qty*3:qty;   /* juego completo L+T+N (#2 mejoras) */
         pr=pPr(p.id);        /* en mecanismos ya incluye la mano de obra + el material */
-        imp=qty*pr;
-        box.querySelector('[data-sub]').textContent=(qty>0&&pr>0)?`${nfC.format(qty)} × ${nfC.format(pr)} = ${money(imp)}`:'—';
+        imp=qEff*pr;
+        box.querySelector('[data-sub]').textContent=(qEff>0&&pr>0)
+          ?((x3&&x3.checked)
+            ?`${nfC.format(qty)} m ×3 = ${nfC.format(qEff)} × ${nfC.format(pr)} = ${money(imp)}`
+            :`${nfC.format(qty)} × ${nfC.format(pr)} = ${money(imp)}`)
+          :'—';
       }
       const impC=imp*coef;
       sumA0+=imp; sumA+=impC;
@@ -390,11 +448,11 @@ function calc(){
     if(imp>0){ sumA0+=imp; sumA+=imp; matA+=imp; }
   });
   let libSum=0;
-  $$('#libres-wrap .lib-row').forEach(r=>{
-    const p=parseFloat(r.querySelector('[data-lib="p"]').value)||0;
-    const q=parseFloat(r.querySelector('[data-lib="q"]').value)||0;
-    const imp=p*q; libSum+=imp;
-    r.querySelector('[data-sub]').textContent=q>0?money(imp):'—';
+  LIBRES.forEach((L,i)=>{   /* incluye las de cada grupo (#10) · #8 mejoras2: memoria, no DOM */
+    const imp=(L.p||0)*(L.q||0); libSum+=imp;
+    const row=document.querySelector(`.lib-row [data-lib="p"][data-i="${i}"]`);
+    if(row){ const sub=row.closest('.lib-row').querySelector('[data-sub]');
+      if(sub) sub.textContent=(L.q||0)>0?money(imp):'—'; }
   });
   sumA0+=libSum; sumA+=libSum;
   /* margen sobre materiales (#29) */
@@ -404,12 +462,12 @@ function calc(){
   matA+=margenAmt;
   const coefAlb=coef;
   let sumB=0, horas=0;
-  $$('#alb-rows .alb-row').forEach(r=>{
-    const h=parseFloat(r.querySelector('[data-albh]').value)||0;
-    const pr=parseFloat(r.querySelector('[data-albp]').value)||0;
+  ALBROWS.forEach(a=>{   /* #8 mejoras2 (fase 1): memoria, no DOM */
+    const h=a.h||0, pr=a.p!=null?a.p:28;
     const imp=h*pr; horas+=h; sumB+=imp;
-    r.querySelector('[data-sub]').textContent=money(imp);
-    r.classList.toggle('off',h<=0);
+    const row=document.querySelector(`.alb-row[data-id="${a.id}"]`);
+    if(row){ const sub=row.querySelector('[data-sub]'); if(sub) sub.textContent=money(imp);
+      row.classList.toggle('off',h<=0); }
   });
   sumB+=num('f-alb-mat')+num('f-alb-maq')+num('f-alb-e1')+num('f-alb-e2');
   const fh=$('#f-alb-horas'); if(fh) fh.value=nfC.format(horas);
@@ -422,7 +480,10 @@ function calc(){
   const desc=descCom+dvol;
   const baseDes=base-desc;
   const ivaP=parseFloat(document.querySelector('input[name=iva]:checked').value)||0;
-  const iva=baseDes*ivaP/100;
+  const mixEl=document.getElementById('f-iva-mixto');
+  const mixOn=!!(mixEl&&mixEl.checked);                     /* #4 mejoras2: doble IVA */
+  const mix=mixOn?ivaMix(baseDes,num('f-iva-p10')):null;
+  const iva=mixOn?mix.iva:baseDes*ivaP/100;
   const rnd=$('#f-redondeo').value;
   const total=redondeoTotal(baseDes+iva,rnd);
   const rndAmt=total-(baseDes+iva);
@@ -448,6 +509,9 @@ function calc(){
   else $('#r-rowCoef').style.display='none';
   if(margenAmt>0){ T('r-margen',`+ ${money(margenAmt)} (${nfC.format(margenPct)}% s/material)`); $('#r-rowMargen').style.display=''; }
   else $('#r-rowMargen').style.display='none';
+  /* aviso: materiales facturados sin margen (#1 mejoras) */
+  const mh=$('#margen-hint');
+  if(mh) mh.textContent=(base>0&&matA>0&&margenPct===0)?'⚠ Sin margen sobre el material — recomendado 25–35 %':'';
   if(costeM>0&&ventaM>0){
     const mg=ventaM-costeM;
     T('r-coste',money(costeM)+' → venta '+money(ventaM));
@@ -461,15 +525,16 @@ function calc(){
   else $('#r-rowDvol').style.display='none';
   const estDv=$('#f-desc-vol-estado');
   if(estDv) estDv.value=ench>60?`Activo: ${nfC.format(dvolP)}% con ${ench} enchufes`:`Inactivo (≤60 enchufes · ahora ${ench})`;
-  T('r-iva-label',ivaP?`IVA (${nfC.format(ivaP)}%)`:'IVA (no incluido)');
-  T('r-iva',ivaP?money(iva):'—');
+  if(mixOn){ T('r-iva-label',`IVA (10% + 21%) · reparto ${nfC.format(mix.p10)}/${nfC.format(100-mix.p10)}%`); T('r-iva',money(iva)); }
+  else{ T('r-iva-label',ivaP?`IVA (${nfC.format(ivaP)}%)`:'IVA (no incluido)'); T('r-iva',ivaP?money(iva):'—'); }
   if(rndAmt!==0){ T('r-rnd',(rndAmt>0?'+ ':'− ')+money(Math.abs(rndAmt))); $('#r-rowRnd').style.display=''; }
   else $('#r-rowRnd').style.display='none';
   T('r-total',money(total));
   T('r-letra',totalLetra(total));
-  T('s-base',money(base)); T('s-IVA',ivaP?money(iva):'—'); T('s-T',money(total));
+  const ivaShow=mixOn||ivaP;                                 /* #4 mejoras2 */
+  T('s-base',money(base)); T('s-IVA',ivaShow?money(iva):'—'); T('s-T',money(total));
   T('sv-base',money(base));
-  T('sv-IVA',ivaP?money(iva):'—'); T('sv-T',money(total));
+  T('sv-IVA',ivaShow?money(iva):'—'); T('sv-T',money(total));
   const pct=base>0? matA/base*100:50;
   const donut=$('#donut');
   if(donut) donut.style.background=`conic-gradient(var(--acc) 0 ${pct}%, var(--warn) ${pct}% 100%)`;
@@ -477,22 +542,68 @@ function calc(){
   $('#bar').style.width=Math.round(partidas/totalPartidas*100)+'%';
   $('#progress-text').textContent=`${partidas} de ${totalPartidas} partidas`;
   document.title=`${idv('f-num')||'PE'}${idv('f-ver')?' '+idv('f-ver'):''} — ${idv('f-cli-nombre')||'Presupuesto eléctrico'}`;
-  return {sumA:sumAc,sumB:sumBc,sumA0,sumB0:sumB,base,desc,descCom,dvol,dvolP,baseDes,ivaP,iva,rnd,rndAmt,total,coef,matT:matA,moT,horas,libSum,ench,margenPct,margenAmt,costeM,ventaM};
+  return {sumA:sumAc,sumB:sumBc,sumA0,sumB0:sumB,base,desc,descCom,dvol,dvolP,baseDes,ivaP,ivaMix:mix,iva,rnd,rndAmt,total,coef,matT:matA,moT,horas,libSum,ench,margenPct,margenAmt,costeM,ventaM};
 }
 
 /* ================= estado / deshacer / persistencia ================= */
 const KEY='presu-electrico-pro-v3';
 let UNDO=[], REDO=[], lastSnap=null, LOADING=true, DIRTY=false;
-function getState(){
-  const st={v:5, vals:{}, chips:{},
-    libres:$$('#libres-wrap .lib-row').map(r=>({n:r.querySelector('[data-lib="n"]').value, p:parseFloat(r.querySelector('[data-lib="p"]').value)||0, q:parseFloat(r.querySelector('[data-lib="q"]').value)||0})),
-    albs:$$('#alb-rows .alb-row').map(r=>({id:r.dataset.id, n:r.querySelector('.cname').value, h:parseFloat(r.querySelector('[data-albh]').value)||0, p:parseFloat(r.querySelector('[data-albp]').value)||0})),
-    wizard:document.body.classList.contains('wizard') };
+/* ---- #8 mejoras2 (fase 2): VALS/CHIPS/X3 en memoria, el DOM es su reflejo ---- */
+/** Actualiza el modelo desde un elemento que ACABA de cambiar (listener delegado
+    o escritura programática). No-op fuera de #presu y en radios iva/wm (no serializados). */
+function fieldSync(el){
+  if(!el||!el.matches||!el.closest||!el.closest('#presu')) return;
+  if(el.type==='radio'){
+    const m=/^pr-(.+)$/.exec(el.name||'');
+    if(el.checked&&m&&el.dataset.idx!=null) CHIPS[m[1]]=parseInt(el.dataset.idx,10);
+    return;
+  }
+  if(el.type==='checkbox'&&el.dataset.ltn!==undefined){
+    X3[el.dataset.ltn]=el.checked;
+    if(el.id) VALS[el.id]=el.checked?'1':'0';   /* hoy se guarda también en vals: paridad */
+    return;
+  }
+  if(!el.id||el.type==='file'||el.readOnly) return;
+  VALS[el.id]=el.type==='checkbox'?(el.checked?'1':'0'):el.value;
+}
+/** Escribe un campo por id: DOM + memoria, siempre juntos. Único camino para
+    los escritores programáticos (nuevo nº, plantilla, importar IA…). */
+function setField(id,v){
+  const el=document.getElementById(id); if(!el) return;
+  if(el.type==='checkbox'){
+    el.checked=(v==='1'||v===true);
+    if(el.dataset.ltn!==undefined) X3[el.dataset.ltn]=el.checked;
+    if(el.closest&&el.closest('#presu')&&el.id) VALS[id]=el.checked?'1':'0';
+    return;
+  }
+  el.value=v;
+  if(el.closest&&el.closest('#presu')&&el.type!=='file'&&!el.readOnly) VALS[id]=String(v);
+}
+/** Escritura masiva: fillFields({id:valor,…}). */
+function fillFields(o){ Object.entries(o||{}).forEach(([id,v])=>setField(id,v)); }
+/** Reconstruye VALS/CHIPS/X3 leyendo el formulario pintado. Se usa al arrancar,
+    al final de applyState() y tras los escritores masivos: garantiza que el
+    modelo y el DOM dicen lo mismo en las fronteras de carga. */
+function resyncStateFromDom(){
+  VALS={}; CHIPS={}; X3={};
   $$('#presu input[id],#presu select[id],#presu textarea[id]').forEach(el=>{
-    if(el.type==='file'||el.readOnly) return; st.vals[el.id]=el.value; });
+    if(el.type==='file'||el.readOnly) return;
+    VALS[el.id]=el.type==='checkbox'?(el.checked?'1':'0'):el.value; });
   GRUPOS.forEach(g=>g.partidas.forEach(p=>{
-    const b=document.querySelector(`.partida[data-id="${p.id}"] input:checked`);
-    st.chips[p.id]=b?parseInt(b.dataset.idx,10):basePrices(p).length-1; }));
+    const b=document.querySelector(`.partida[data-id="${p.id}"] input[type=radio]:checked`);
+    if(b&&b.dataset.idx!=null) CHIPS[p.id]=parseInt(b.dataset.idx,10); }));
+  $$('#presu [data-ltn]').forEach(c=>{ X3[c.dataset.ltn]=c.checked; });
+}
+function getState(){
+  /* #8 mejoras2: TODO el estado sale del modelo en memoria — getState() ya no
+     lee el formulario. La memoria la mantienen los listeners delegados
+     (fieldSync), setField() y resyncStateFromDom() en las fronteras. */
+  const st={v:5, vals:{...VALS}, chips:{}, x3:{...X3},
+    libres:LIBRES.map(L=>({g:L.g||null,n:L.n||'',p:L.p||0,q:L.q||0})),
+    albs:ALBROWS.map(a=>({id:a.id,n:a.name||'',h:a.h||0,p:a.p!=null?a.p:28})),
+    wizard:document.body.classList.contains('wizard') };
+  GRUPOS.forEach(g=>g.partidas.forEach(p=>{
+    st.chips[p.id]=(CHIPS[p.id]!=null)?CHIPS[p.id]:basePrices(p).length-1; }));
   return st;
 }
 /** Migraciones de esquema (#7): los estados antiguos no se pierden. */
@@ -555,20 +666,27 @@ function applyState(st){
   if(st.wizard) showStep(0);
   Object.entries(st.vals||{}).forEach(([id,v])=>{
     const el=document.getElementById(id);
-    if(el&&el.type!=='file'&&!el.readOnly) el.value=v; });
-  renderLibres(); $$('#libres-wrap .lib-row').forEach((r,i)=>{
-    const L=(st.libres||[])[i]; if(!L) return;
-    r.querySelector('[data-lib="n"]').value=L.n||''; r.querySelector('[data-lib="p"]').value=L.p||0; r.querySelector('[data-lib="q"]').value=L.q||0; });
-  if(Array.isArray(st.albs)&&st.albs.length){
-    ALBROWS=st.albs.map(a=>({id:a.id||('alb-'+Math.random().toString(36).slice(2,9)), name:a.n||'', h:a.h||0, p:a.p!=null?a.p:28}));
-    renderAlb();
-  }
+    if(el&&el.type!=='file'&&!el.readOnly){
+      if(el.type==='checkbox') el.checked=(v==='1'||v===true);   /* #4 mejoras2 */
+      else el.value=v; } });
+  const mx=document.getElementById('f-iva-mixto');                /* #4 mejoras2: mostrar/ocultar el reparto */
+  if(mx){ const w=$('#f-iva-p10-wrap'); if(w) w.style.display=mx.checked?'':'none'; }
+  /* casillas «×3 L+T+N» guardadas (#2 mejoras) */
+  $$('#presu [data-ltn]').forEach(c=>{ c.checked=!!(st.x3||{})[c.dataset.ltn]; });
+  /* líneas libres (globales y por grupo, #10 mejoras): se reconstruyen desde el estado.
+     #8 mejoras2 (fase 1): LIBRES/ALBROWS se reasignan SIEMPRE desde el estado
+     (antes, un estado con albs:[] dejaba vivas las filas anteriores). */
+  LIBRES=(Array.isArray(st.libres)?st.libres:[]).map(L=>({g:L.g||null,n:L.n||'',p:L.p||0,q:L.q||0}));
+  renderLibres();
+  ALBROWS=(Array.isArray(st.albs)?st.albs:[]).map(a=>({id:a.id||('alb-'+Math.random().toString(36).slice(2,9)), name:a.n||'', h:a.h||0, p:a.p!=null?a.p:28}));
+  renderAlb();
   repriceChips();
   Object.entries(st.chips||{}).forEach(([id,idx])=>{
     const box=document.querySelector(`.partida[data-id="${id}"]`); if(!box) return;
     const r=box.querySelectorAll('input[type=radio]')[idx]; if(!r) return;
     r.checked=true; box.querySelectorAll('.chip-opt').forEach(c=>c.classList.remove('sel'));
     r.closest('.chip-opt').classList.add('sel'); });
+  resyncStateFromDom();   /* #8 mejoras2 (fase 2): el DOM pintado siembra el modelo */
   calc();
 }
 function save(){
@@ -592,9 +710,9 @@ function doRedo(){ if(!REDO.length||LOADING) return; UNDO.push(lastSnap); lastSn
   applyState(JSON.parse(lastSnap)); DIRTY=false; Store._emit(); }
 
 /* ================= catálogos ================= */
-/** Numeración independiente por tipo y año (#14): PE-2026-001 / FA-2026-001. */
+/** Numeración independiente por tipo y año (#14): PE-2026-001 / FE-2026-001 (#4 mejoras2). */
 function nextNum(tipo){
-  tipo=tipo==='FA'?'FA':'PE';
+  tipo=(tipo==='FA'||tipo==='FE')?tipo:'PE';
   const y=new Date().getFullYear();
   const cs=LS('pe-counters')||{};
   if(tipo==='PE'&&cs.PE==null){ const legacy=LS('pe-counter'); if(legacy) cs.PE={[y]:legacy}; }
@@ -605,4 +723,4 @@ function nextNum(tipo){
 }
 function setSelByText(id,val){ const s=document.getElementById(id); if(!s||val==null||val==='') return;
   const o=[...s.options].find(o=>o.textContent.toLowerCase().includes(String(val).toLowerCase())||o.value===String(val));
-  if(o) s.value=o.value; }
+  if(o){ s.value=o.value; fieldSync(s); } }

@@ -1,0 +1,83 @@
+================================================================================
+  10 MEJORAS PARA «PRESUPUESTO ELÉCTRICO PRO»
+  Objetivo: presupuesto más profesional, más rápido y más sencillo.
+  Escrito: 09/11/2026 · ordenado por impacto (lo primero es lo que más ganas).
+  >>> Implementación paso a paso: docs/INSTRUCTIVO_MEJORAS.md (mismo orden 1-10,
+  con anclajes de código reales; allí se aclara qué existe ya en la app —
+  margen f-margen, plantillas pe-tpls, «Mis obras» pe-works, tema oscuro,
+  líneas libres — para no duplicarlo).
+================================================================================
+
+1 · MARGEN DE BENEFICIO SOBRE EL MATERIAL (coeficiente configurable)
+  Hoy las filas de Canalizaciones facturan a precio de compra de Leroy Merlin
+  (refp): 100 m de 2,5 mm² = 39,00 € y no hay ni un euro de margen.
+  Un ajuste «coeficiente de materiales» (×1,25–×1,40, editable en Ajustes,
+  guardado en localStorage) que multiplique solo las partidas de compra
+  (tubo, cable, manguera, cajas) dejaría el beneficio claro y separado de la
+  mano de obra. Es el cambio que más dinero «recupera» por presupuesto.
+
+2 · CASILLA «CIRCUITO COMPLETO L+T+N» (×3 automático)
+  El error más fácil de cometer: poner 30 m de cable cuando un circuito
+  necesita 3 × 30 = 90 m (L+N+T). Una casilla junto a cada cable unipolar
+  («juego completo») que multiplique ×3 al calcular, con el chip mostrando
+  «90 m × 0,39 €». Elimina la regla manual del ×3 de un plumazo.
+
+3 · ESTIMADOR DE METROS DESDE PUNTOS (presupuesto en 30 segundos)
+  En la visita no hay plano: introduces nº de enchufes, interruptores, puntos
+  de luz y m² de vivienda, y la app estima metros de tubo (≈ nº puntos × 8 m),
+  metros de cable (metros de tubo × 3), cajillos (= nº mecanismos) y cajas de
+  derivación (= circuitos). Los valores caen ya rellenados en las filas y se
+  pueden retocar. De escribir 15 números a escribir 4.
+
+4 · PLANTILLAS DE TRABAJO TÍPICO («vivienda 90 m²», «reforma cocina»…)
+  Botones que precargan cantidades y partidas de los trabajos que repites:
+  «reforma completa vivienda», «cambio de cuadro + boletín», «cocina»,
+  «exterior/enterrado» (manguera RZ1-K + estancas IP55). Guardadas como
+  presets en localStorage y editables. El 70 % de los presupuestos se
+  parecen; que la app lo sepa.
+
+5 · BIBLIOTECA DE PRESUPUESTOS POR CLIENTE (guardar / duplicar / buscar)
+  Ahora solo existe un presupuesto (un estado en localStorage). Guardar cada
+  presupuesto con cliente + fecha + nº correlativo (PE-2026-001), listarlo,
+  duplicarlo para una variante y reabrirlo. Sin esto, cada cliente nuevo
+  significa borrar el anterior.
+
+6 · ACTUALIZADOR DE PRECIOS SEMIAUTOMÁTICO (pegar listado LM)
+  Una pestaña «Actualizar precios»: pegas el texto copiado de la web de LM
+  (como hicimos con «nuevos precios.txt»), la app busca los artículos
+  conocidos, saca el PVP con IVA, divide ÷1,21 y recalibra los refp. Con
+  fecha de última actualización visible y aviso si pasa de 3 meses. Adiós
+  a editar data.js a mano cada vez que sube un rollo.
+
+7 · PDF MÁS PROFESIONAL (numeración, validez y condiciones)
+  Nº de presupuesto correlativo y fecha de emisión automática, validez de la
+  oferta (30 días), condiciones 50 % inicio / 50 % fin y garantía 3 años al
+  pie, desglose opcional material/mano de obra para el cliente, y versión
+  «copia para mí» con coste real + margen. Todo ya existe como datos; solo
+  hay que maquetarlo.
+
+8 · ESTADOS Y SEGUIMIENTO (enviado / aceptado / rechazado + recordatorio)
+  Cada presupuesto guardado lleva un estado y una nota. Un panel «pendientes»
+  muestra los enviados hace más de 7 días sin respuesta y permite exportar un
+  recordatorio al calendario del móvil (.ics) o un mensaje de seguimiento
+  listo para WhatsApp. Presupuestar bien no sirve si no se cierra.
+
+9 · MODO OBRA EN EL MÓVIL (una columna, atajos y modo oscuro)
+  En la visita o en obra: layout de una sola columna con subtotales siempre
+  visibles al desplazar, botones rápidos (+10 m, +25 m, ×3, limpiar),
+  teclado numérico forzado y modo oscuro. Ahora mismo la tabla ancha obliga
+  a hacer zoom y pierde tiempo justo donde más se usa.
+
+10 · PARTIDAS PERSONALIZADAS «+ AÑADIR LÍNEA»
+  Botón «+» en cada grupo para crear una partida propia (nombre, unidad,
+  precio) guardada en localStorage — ese ventilador de techo, esa luminaria
+  suministrada por el cliente, el alquiler de plataforma… Sin salir de la
+  app ni pedir cambios en el código. Las líneas libres ya existen en albañilería:
+  generalizarlo a todos los grupos.
+
+================================================================================
+  Nota técnica: todas las mejoras son compatibles con la arquitectura actual
+  (app estática sin servidor, estado en localStorage, GRUPOS/refp en js/data.js).
+  Las nº 1, 2 y 10 son las más baratas de implementar y las que más simplifican
+  el día a día; la nº 6 mantiene los precios vivos sin volver a tocar código.
+================================================================================

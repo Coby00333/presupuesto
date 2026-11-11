@@ -1,0 +1,129 @@
+================================================================================
+  OTRAS 10 MEJORAS PARA «PRESUPUESTO ELÉCTRICO PRO» — RONDA 2
+  Enfoque: estructural y tecnológico (profesionalidad del código y del servicio,
+  no solo de la factura). Escrito: 10/11/2026 · ordenado por impacto.
+  Continúa a docs/mejoras.txt (nº 1-10, ya implementadas). Anclajes de código
+  reales de la arquitectura actual: 5 scripts globales sin build, estado en
+  localStorage (15 claves pe-*), tests solo de funciones puras (tests/pure.
+  test.mjs ejecuta data.js+pure.js en una sandbox vm), sw.js CACHE v11.
+================================================================================
+
+1 · COPIA DE SEGURIDAD TOTAL + MIGRACIONES VERSIONADAS (pe-db)
+  Hoy backupMensual() (js/app.js) exporta SOLO el presupuesto en pantalla
+  ({ia, state}); si el móvil se pierde, se van con él las obras guardadas
+  (pe-works, 16 referencias), los clientes (pe-clients), las plantillas,
+  los precios recalibrados (pe-refp) y la cadena de facturas. Además los 15
+  prefijos pe-* no tienen versión de esquema: cualquier cambio futuro puede
+  romper datos viejos en silencio. Un objeto único {v:N, works, clients,
+  tpls, refp, facturas, settings} tras una clave pe-db, una cadena de
+  migraciones v1→v2→… al arrancar, y botones «Exportar todo / Restaurar
+  todo» (.json único, restauración con previsualización reutilizando
+  #modal-import). Es la mejora que evita el desastre irreparable.
+
+2 · CI CON GITHUB ACTIONS + TESTS DE INTERFAZ (jsdom / Playwright)
+  La cobertura actual solo cubre las funciones puras: renderGrupos, calc,
+  la casilla ×3, los botones +10/+25 y el modo obra carecen de red de
+  seguridad. Dos capas nuevas: (a) tests DOM con jsdom — cargar los 5
+  scripts, rellenar cantidades y afirmar el sumbar y r.total; (b) un E2E
+  Playwright que abra la app, rellene un presupuesto y genere el PDF
+  (scripts/_gen_pdf_*.mjs ya lo hace a mano: convertirlos en spec). Todo
+  disparado en CI: push → node scripts/check.mjs + node --test + smoke
+  PDF, con el PDF subido como artefacto. Sin CI, cada mejora futura es un
+  acto de fe; con CI, la app se comporta como un producto.
+
+3 · TIPADO GRADUAL SIN BUILD: JSDoc + jsconfig + tsc --noEmit
+  Los 5 módulos comparten globals implícitos ($, $$, idv, LS, GRUPOS,
+  PART_BY_ID, cur…) y ya hemos corregido errores de nombre en caliente
+  (pdf.js arranca con // @ts-check precisamente por eso). Extender
+  @ts-check a calc.js/app.js, añadir jsconfig.json ({checkJs, strict:
+  false}), tipar los contratos vivos (Partida {id, unit, refp, ltn},
+  CalcResult {sumA, matT, moT, margenAmt…}, la meta de pe-works) y
+  añadir tsc --noEmit a check.mjs y a la CI. Cero build, cero
+  dependencias nuevas en la app: el editor y el CI cazan los typos que
+  hoy solo se ven en producción.
+
+4 · LIBRO DE FACTURAS DE VERDAD: IVA POR TIPO, SERIES Y EXPORTACIÓN
+  La factura (buildFacturaPDF + commitFactura → LS('pe-facturas')) usa un
+  único IVA (r.ivaP) y no registra cobros. Un electricista real necesita:
+  base 10% (rehabilitación) y 21% (nueva planta / materiales) en el mismo
+  documento con dos líneas de IVA; series FE-2026-001 correlativas por
+  año; estado cobrada/pendiente con fecha de cobro; y «Exportar libro»
+  CSV/TXT (fecha, nº, cliente, base, IVA, total, hash) para el gestor.
+  El hash Veri*factu ya existe: lo que falta es la contabilidad de uso
+  diario. Panel «Facturación» en Opciones.
+
+5 · INDEXEDDB PARA OBRAS ARCHIVADAS Y ADJUNTOS (adiós al límite de 5 MB)
+  localStorage aguanta ~5 MB y el logo/firma viajan como dataURL base64
+  (+33% de tamaño): con 2-3 años de obras pe-works puede reventar la
+  cuota y el LS() empieza a fallar en silencio. Mover a IndexedDB (con
+  soporte de blobs nativo) las obras archivadas, la cadena de facturas y
+  los adjuntos, dejando en localStorage solo el presupuesto activo y los
+  ajustes para que el arranque siga siendo instantáneo. Migración
+  transparente en el primer init: si existe pe-works, se vuelca a IDB y
+  se marca migrado. invisible para el usuario, decisivo a 3 años vista.
+
+6 · PWA COMPLETA: AVISO DE NUEVA VERSIÓN, INSTALACIÓN Y OFFLINE
+  Hay manifest.webmanifest y sw.js (CACHE v11) con skipWaiting, pero
+  cero UX de actualización: el usuario no sabe que hay versión nueva
+  hasta que cierra todo. Tres piezas: (a) registro.addEventListener(
+  'controllerchange') → toast «Nueva versión disponible — Recargar» con
+  botón; (b) beforeinstallprompt guardado → botón «Instalar como app»
+  en Opciones (antes de que Chrome lo descarte); (c) fallback offline
+  para navegaciones no cacheadas (página offline mínima con la última
+  versión en caché). Con esto la app se instala y se actualiza como una
+  app de tienda, no como una web con suerte.
+
+7 · SEGURIDAD DE DISTRIBUCIÓN: CSP, SRI Y noopener
+  El fetch de librerías cae a cdnjs (VENDOR en js/pdf.js) SIN hash de
+  integridad: un CDN comprometido ejecutaría código en la app del
+  instalador. Y seguimientoWA()/fallbackPrint() abren window.open sin
+  noopener. Tres parches baratos: (a) <meta http-equiv="Content-
+  Security-Policy"> con self + cdnjs + blob: (visor PDF) + data:
+  (imágenes); (b) atributos integrity+crossorigin en los tres CDN de
+  VENDOR (si el hash no coincide, se niega a cargar: mejor PDF de
+  respaldo que script adulterado); (c) ',noopener' en los window.open.
+  Profesionalismo también es no ser el eslabón débil.
+
+8 · MEMORIA COMO ÚNICA FUENTE DE VERDAD (adiós al DOM serializado)
+  Hoy getState() (js/calc.js) construye el estado leyendo todos los
+  inputs del DOM: el formulario ES la base de datos. Funciona, pero
+  explica los sustos del historial (líneas libres reindexadas, modales
+  que pisan valores) y encarece todo lo demás: multi-pestana, sync,
+  tests. Un modelo en memoria (objeto presupuesto con partidas,
+  libres, albs, vals) actualizado por los listeners delegados y del que
+  se RENDERIZA el DOM (one-way), dejando getState como serializador del
+  modelo y ya no del DOM. Es la refactorización interna más grande y la
+  que desbloquea el resto; se puede hacer por grupos (empezando por
+  LIBRES/ALBROWS, que ya funcionan así a medias).
+
+9 · HISTORIAL DE PRECIOS CON ROLLBACK (extensión del actualizador nº 6)
+  Cada «Aplicar seleccionados» sobrescribe pe-refp y pisa el valor
+  anterior sin dejar rastro: imposible justificar por qué el presupuesto
+  de marzo facturó 0,42 €/m. Guardar pe-refp-historial [{fecha,
+  cambios:{id:{antes,después}}}] (máx. 20 entradas), sección
+  «Historial» en #modal-precios con diff y botón «Volver a este punto»
+  por entrada, y que el PDF interno añada «Precios de referencia del
+  DD/MM/AAAA» leída del historial. Trazabilidad profesional con ~40
+  líneas.
+
+10 · DIAGNÓSTICO INTEGRADO: CAPTURA DE ERRORES + INFORME COPIABLE
+  Cuando algo falla hoy, el fallo es invisible (console.warn) y el
+  diagnóstico depende de capturas de pantalla. window.onerror +
+  unhandledrejection → cola pe-errors (últimos 20, con fecha, mensaje y
+  versión CACHE), botón «Diagnóstico» en Opciones que muestre versión
+  de app/CACHE, agente, soporte (serviceWorker, indexedDB,
+  navigator.share) y los últimos errores, con «Copiar informe» al
+  portapapeles para pegarlo al soporte. Además, envolver LS() en
+  try/catch con aviso visible de cuota agotada (conecta con la nº 5).
+  Para una app mantenida por una persona no desarrolladora, es la
+  diferencia entre «no funciona» y «esto es lo que ha pasado».
+
+================================================================================
+  Nota técnica: todas respetan la filosofía del proyecto (app estática sin
+  servidor, sin build en el cliente). La 1, 7, 9 y 10 son baratas y muy
+  visibles; la 2 y la 3 añaden dependencias de desarrollo (van en scripts/
+  package.json, ya existe) y son el cimiento de todo lo demás; la 4 y la 6
+  son las que más nota el cliente final; la 5 y la 8 son las refactoriza-
+  ciones profundas — planearlas como migraciones graduales, nunca big-bang.
+  Orden sugerido de ataque: 1 → 7 → 10 → 9 → 3 → 2 → 6 → 4 → 5 → 8.
+================================================================================

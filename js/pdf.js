@@ -8,20 +8,34 @@
    Depende de data.js, pure.js y calc.js.
    ===================================================================== */
 
-/* ---- carga de librerías bajo demanda: local (vendor/) primero ---- */
+/* ---- carga de librerías bajo demanda: local (vendor/) primero ----
+   El fallback CDN lleva hash SRI (sha512) verificado contra la API de cdnjs
+   y contra la copia local de vendor/: si el CDN estuviera comprometido y el
+   archivo no coincide byte a byte, el navegador se niega a ejecutarlo (#7
+   mejoras2) y la app cae al PDF de respaldo HTML. */
 const VENDOR={
-  jspdf:['vendor/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'],
-  autotable:['vendor/jspdf.plugin.autotable.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'],
-  qrcode:['vendor/qrcode.min.js','https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js']
+  jspdf:['vendor/jspdf.umd.min.js',{src:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    sri:'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA=='}],
+  autotable:['vendor/jspdf.plugin.autotable.min.js',{src:'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+    sri:'sha512-2/YdOMV+YNpanLCF5MdQwaoFRVbTmrJ4u4EpqS/USXAQNUDgI5uwYi6J98WVtJKcfe1AbgerygzDFToxAlOGEQ=='}],
+  qrcode:['vendor/qrcode.min.js',{src:'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    sri:'sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jJDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw=='}]
 };
-function loadScript(src,timeout){ return new Promise((res,rej)=>{
+function loadScript(src,timeout,sri){ return new Promise((res,rej)=>{
   const s=document.createElement('script'); s.src=src;
+  if(sri){ s.integrity=sri; s.crossOrigin='anonymous'; }
   const t=setTimeout(()=>{s.remove();rej(new Error('timeout'));},timeout||10000);
   s.onload=()=>{clearTimeout(t);res();};
   s.onerror=()=>{clearTimeout(t);s.remove();rej(new Error('net'));};
   document.head.appendChild(s);
 });}
-async function loadFirst(urls,timeout){ for(const u of urls){ try{ await loadScript(u,timeout); return; }catch(e){} } throw new Error('no source'); }
+async function loadFirst(urls,timeout){
+  for(const u of urls){
+    const src=typeof u==='string'?u:u.src;
+    try{ await loadScript(src,timeout,typeof u==='object'?u.sri:null); return; }catch(e){}
+  }
+  throw new Error('no source');
+}
 async function ensurePdf(){
   if(!(window.jspdf&&window.jspdf.jsPDF))
     await loadFirst(VENDOR.jspdf);
@@ -41,7 +55,7 @@ const hexRGB=hex=>{ hex=(hex&&/^#[0-9a-fA-F]{6}$/.test(hex))?hex:'#2f6ae0';
   return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)]; };
 function fname(ext){ const n=idv('f-num').replace(/[^\w-]+/g,'_')||'documento';
   const v=idv('f-ver').replace(/[^\w]/g,'');
-  const tipo=idv('f-doc-tipo')==='factura'?'Factura':'Presupuesto';
+  const tipo=window.__PDF_INTERNO?'Interno':(idv('f-doc-tipo')==='factura'?'Factura':'Presupuesto');
   return `${tipo}_${n}${v?'_'+v:''}.${ext||'pdf'}`; }
 function busy(on){ const b=$('#loading-pdf'); if(b) b.classList.toggle('show',!!on); }
 /** Añade una imagen dataURL (PNG/JPEG) ajustando su altura. */
@@ -65,6 +79,19 @@ function qrPaint(doc,text,x,y,size){
 }
 
 /* ---- filas de datos para documentos ---- */
+/* líneas libres de un grupo (#10 mejoras): cuentan como material de la sección.
+   #8 mejoras2 (fase 1): se leen de LIBRES (memoria), no del DOM */
+function libresDe(div){
+  const rows=[]; let sum=0;
+  LIBRES.forEach(L=>{
+    if((L.g||null)!==div) return;
+    const n=L.n||'Partida adicional', p=L.p||0, q=L.q||0;
+    if(q<=0&&p<=0) return;
+    const imp=p*q; sum+=imp;
+    rows.push([n,'ud',nfC.format(q),nfC.format(p),nf.format(imp)+' '+cur().sym]);
+  });
+  return {rows,sum};
+}
 function rowsA(){
   const secs=[];
   const marca=$('#f-marca')?$('#f-marca').value:'miluz';
@@ -72,7 +99,7 @@ function rowsA(){
     const isMec=g.div==='g-mec';
     const gm=[], go=[]; let sm=0, so=0;
     g.partidas.forEach(p=>{
-      const q=pQty(p.id); if(q<=0) return;
+      const q=qEffOf(p.id); if(q<=0) return;   /* ×3 L+T+N ya aplicado (#2 mejoras) */
       /* en mecanismos el precio ya incluye mano de obra + material de la marca */
       const pu=pPr(p.id);
       const imp=q*pu;
@@ -90,19 +117,20 @@ function rowsA(){
         gm.push([it.name,'ud',nfC.format(q),nfC.format(pr),nf.format(imp)+' '+cur().sym]); sm+=imp;
       });
       /* sección única del grupo: material de marca + mano de obra en el precio/ud */
+      const Lg=libresDe(g.div); gm.push(...Lg.rows); sm+=Lg.sum;   /* libres del grupo (#10) */
       const rows=gm.concat(go);
       if(rows.length) secs.push({titulo:g.titulo,parte:'mec',rows,sum:sm+so,
         head:'MECANISMOS Y PUNTOS — material '+MARCA_SHORT[marca]+' + mano de obra (precio/ud con material y MO)'});
       return;
     }
+    const Lg2=libresDe(g.div); gm.push(...Lg2.rows); sm+=Lg2.sum;  /* libres del grupo (#10) */
     if(gm.length) secs.push({titulo:g.titulo,parte:'mat',rows:gm,sum:sm});
     if(go.length) secs.push({titulo:g.titulo,parte:'mo',rows:go,sum:so});
   });
   const lib=[]; let sl=0;
-  $$('#libres-wrap .lib-row').forEach(r=>{
-    const n=r.querySelector('[data-lib="n"]').value||'Partida adicional';
-    const p=parseFloat(r.querySelector('[data-lib="p"]').value)||0;
-    const q=parseFloat(r.querySelector('[data-lib="q"]').value)||0;
+  LIBRES.forEach(L=>{   /* globales: sin grupo o con grupo que ya no existe en el DOM */
+    if(L.g&&document.querySelector(`.g-libres[data-glib="${L.g}"]`)) return;
+    const n=L.n||'Partida adicional', p=L.p||0, q=L.q||0;
     if(q<=0&&p<=0) return;
     sl+=p*q;
     lib.push([n,'ud',nfC.format(q),nfC.format(p),nf.format(p*q)+' '+cur().sym]);
@@ -111,10 +139,8 @@ function rowsA(){
   return secs;
 }
 function rowsB(){
-  const rows=$$('#alb-rows .alb-row').map(r=>{
-    const h=parseFloat(r.querySelector('[data-albh]').value)||0;
-    const p=parseFloat(r.querySelector('[data-albp]').value)||0;
-    const nm=(r.querySelector('.cname')&&r.querySelector('.cname').value)||'Partida';
+  const rows=ALBROWS.map(a=>{   /* #8 mejoras2 (fase 1): memoria, no DOM */
+    const h=a.h||0, p=a.p!=null?a.p:28, nm=a.name||'Partida';
     return [nm,'h',nfC.format(h),nfC.format(p),nf.format(h*p)+' '+cur().sym];
   });
   if(num('f-alb-mat')) rows.push(['Material de albañilería (mortero, yeso, accesorios)','—','1','—',nf.format(num('f-alb-mat'))+' '+cur().sym]);
@@ -128,7 +154,10 @@ function totalsFor(r){
   const base=r.base;
   const dv=num('f-desc-val'), dt=$('#f-desc-tipo').value;
   const dvolP=(r.ench>60)?Math.min(30,Math.max(0,num('f-desc-vol'))):0;
-  const t=totalsForPure(base,(dt==='%'? base*dv/100 : Math.min(dv,base)),base*dvolP/100,r.ivaP,$('#f-redondeo').value);
+  const mixEl=document.getElementById('f-iva-mixto');
+  const mix=!!(mixEl&&mixEl.checked);                        /* #4 mejoras2: doble IVA */
+  const t=/** @type {Totals} */(totalsForMix(base,(dt==='%'? base*dv/100 : Math.min(dv,base)),base*dvolP/100,
+    r.ivaP,$('#f-redondeo').value,mix,num('f-iva-p10')));
   t.dvolP=dvolP;
   return t;
 }
@@ -155,6 +184,11 @@ async function buildPDF(){
 
   /* cabecera: banda de acento, identidad (izq.) y título a dos niveles (der.) */
   doc.setFillColor(acc[0],acc[1],acc[2]); doc.rect(0,0,W,5,'F');
+  const interno=!!window.__PDF_INTERNO;          /* #7 mejoras: copia interna */
+  if(interno){ doc.setFillColor(RED[0],RED[1],RED[2]); doc.rect(0,5,W,7,'F');
+    doc.setTextColor(255); doc.setFont(font,'bold'); doc.setFontSize(8.5);
+    doc.text('COPIA INTERNA — COSTE Y MARGEN · NO ENVIAR AL CLIENTE',W/2,9.9,{align:'center'});
+    doc.setTextColor(INK[0],INK[1],INK[2]); y=21; }
   doc.setFont(font,'bold'); doc.setFontSize(12.5); doc.setTextColor(INK[0],INK[1],INK[2]);
   const logoW=(A.logo&&A.logoAR)?addImgFit(doc,A.logo,M,y,11,A.logoAR):0;
   const lx=M+logoW+(logoW?4:0);
@@ -246,7 +280,7 @@ async function buildPDF(){
     const matSecs=secciones.filter(s=>s.parte==='mat');
     const moSecs=secciones.filter(s=>s.parte==='mo');
     if(mecSecs.length){
-      mecSecs.forEach(sec=>secTable(sec.head||sec.titulo,sec.rows));
+      mecSecs.forEach(sec=>secTable((/** @type {any} */(sec)).head||sec.titulo,sec.rows));
       subtotal('Subtotal mecanismos y puntos',nf.format(mecSecs.reduce((a,s)=>a+s.sum,0))+' '+cur().sym);
     }
     if(matSecs.length){
@@ -280,9 +314,18 @@ async function buildPDF(){
     if(t.dvolP>0) totRows.push(['d',`Descuento por volumen (${nfC.format(t.dvolP)}%)`,'- '+nf.format(t.base*t.dvolP/100)+' '+cur().sym]);
     totRows.push(['b','Base imponible',nf.format(t.baseDes)+' '+cur().sym]);
   }else totRows.push(['b','Base imponible',nf.format(t.baseDes)+' '+cur().sym]);
-  if(r.ivaP) totRows.push(['n',`IVA ${nfC.format(r.ivaP)}%`,nf.format(t.iva)+' '+cur().sym]);
+  if(t.ivaMix){ totRows.push(['n','IVA 10% (rehabilitación)',nf.format(t.ivaMix.iva10)+' '+cur().sym]);   /* #4 mejoras2 */
+    totRows.push(['n','IVA 21% (materiales / obra nueva)',nf.format(t.ivaMix.iva21)+' '+cur().sym]); }
+  else if(r.ivaP) totRows.push(['n',`IVA ${nfC.format(r.ivaP)}%`,nf.format(t.iva)+' '+cur().sym]);
   const rndAdj=t.total-(t.baseDes+t.iva);
   if(Math.abs(rndAdj)>0.004) totRows.push(['n','Redondeo comercial',(rndAdj>0?'+ ':'- ')+nf.format(Math.abs(rndAdj))+' '+cur().sym]);
+  /* desglose material / mano de obra opcional (#7 mejoras) */
+  if(($('#f-pdf-desglose')||{}).checked&&r.matT>0){
+    const ix=totRows.findIndex(rw=>rw[0]==='b');
+    if(ix>=0) totRows.splice(ix+1,0,
+      ['n','De los cuales — material',nf.format(r.matT)+' '+cur().sym],
+      ['n','De los cuales — mano de obra',nf.format(r.moT)+' '+cur().sym]);
+  }
   const px=W-M-92, pw=92, rowH=4.6;
   const panH=8.5+(totRows.length-1)*rowH+4, bandH=11;
   if(y+panH+bandH+12>H-40){ doc.addPage(); y=16; }
@@ -310,6 +353,19 @@ async function buildPDF(){
     doc.text(totalLetra(t.total),M,y); y+=5.5; }
   y+=2; doc.setTextColor(INK[0],INK[1],INK[2]);
 
+  /* desglose interno de márgenes: SOLO en la copia interna (#7 mejoras) */
+  if(interno){
+    h2('Interno — márgenes (no visible para el cliente)');
+    const irows=[['Beneficio sobre materiales',`+ ${nf.format(r.margenAmt)} ${cur().sym} (${nfC.format(r.margenPct)}%)`],
+      ['Material facturado (con margen)',nf.format(r.matT)+' '+cur().sym],
+      ['Mano de obra y servicios',nf.format(r.moT)+' '+cur().sym],
+      ['Coeficiente de dificultad','×'+nfC.format(r.coef)]];
+    if(r.costeM>0) irows.push(['Coste material estimado (compra en marca)',nf.format(r.costeM)+' '+cur().sym]);
+    const fRefp=LS('pe-refp-fecha');                   /* #9 mejoras2: trazabilidad de precios */
+    irows.push(['Precios de referencia',fRefp?fdate(String(fRefp).slice(0,10)):'de fábrica (09/11/2026)']);
+    table([['Concepto interno','Valor']],irows,{columnStyles:{1:{halign:'right'}}});
+  }
+
   /* cronograma + Gantt (#39) */
   if(showA){
     h2('Cronograma de ejecución');
@@ -325,7 +381,7 @@ async function buildPDF(){
     /* barras Gantt simples con jsPDF rect */
     if(y+26<H-40){
       const gx=M+34, gw=W-2*M-40;
-      const fases=[['Preparación',0,0.08],['Rozas y picado',0.05,0.15],['Canalizaciones',0.15,0.55],
+      /** @type {[string,number,number][]} */ const fases=[['Preparación',0,0.08],['Rozas y picado',0.05,0.15],['Canalizaciones',0.15,0.55],
         ['Mecanismos',0.5,0.85],['Tramitación',0.85,0.98]];
       doc.setFontSize(7); doc.setTextColor(TX2[0],TX2[1],TX2[2]);
       fases.forEach(([n,a,b],i)=>{
@@ -354,6 +410,11 @@ async function buildPDF(){
   cond.forEach(c=>{ const ls=doc.splitTextToSize('•  '+c,W-2*M-2);
     if(y+ls.length*4.2>H-40){ doc.addPage(); y=16; }
     doc.text(ls,M,y); y+=ls.length*4.2+1.2; });
+  /* condiciones propias del instalador (#7 mejoras) */
+  String(($('#f-condiciones')||{}).value||'').split('\n').map(s=>s.trim()).filter(Boolean)
+    .forEach(c=>{ const ls=doc.splitTextToSize('•  '+c,W-2*M-2);
+      if(y+ls.length*4.2>H-40){ doc.addPage(); y=16; }
+      doc.text(ls,M,y); y+=ls.length*4.2+1.2; });
 
   /* RGPD */
   doc.setFontSize(7.5); doc.setTextColor(TX2[0],TX2[1],TX2[2]);
@@ -437,10 +498,12 @@ async function buildFacturaPDF(){
   y=38;
 
   /* Veri*factu (#37): hash encadenado de la serie */
-  const cadena=LS('pe-facturas')||[];
+  const cadena=factsGet();   /* libro de facturas (IndexedDB, #5 mejoras2) */
   const prev=cadena.length?cadena[cadena.length-1].hash:'';
   const fhash=await hashFactura(prev,`${num0}|${idv('f-fecha')}|${nf.format(t.base)}|${nfC.format(r.ivaP)}|${nf.format(t.total)}`);
-  window.__LAST_FACT={num:num0,fecha:idv('f-fecha'),base:t.base,ivaP:r.ivaP,total:t.total,hash:fhash,prev:prev||null};
+  window.__LAST_FACT={num:num0,fecha:idv('f-fecha'),cliente:idv('f-cli-nombre')||'—',base:t.base,ivaP:r.ivaP,
+    ivas:t.ivaMix?{p10:t.ivaMix.p10,iva10:t.ivaMix.iva10,iva21:t.ivaMix.iva21}:null,   /* #4 mejoras2 */
+    total:t.total,hash:fhash,prev:prev||null,cobrada:false,fCobro:null};
 
   /* nº, fecha y forma de pago */
   doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFont(font,'bold'); doc.setFontSize(12);
@@ -492,7 +555,7 @@ async function buildFacturaPDF(){
   const secciones=rowsA(), bRows=rowsB();
   const hayAlgo=secciones.length>0||bRows.length>0;
   if(secciones.length)
-    secciones.forEach(sec=>fsec(sec.head||sec.titulo,sec.rows));
+    secciones.forEach(sec=>fsec((/** @type {any} */(sec)).head||sec.titulo,sec.rows));
   if(bRows.length)
     fsec('Ayudas de albañilería',bRows);
   if(!hayAlgo){ doc.setFont(font,'italic'); doc.setFontSize(9); doc.setTextColor(TX2[0],TX2[1],TX2[2]);
@@ -510,7 +573,9 @@ async function buildFacturaPDF(){
     totRows.push(['d','Descuento comercial','- '+nf.format(t.desc)+' '+cur().sym]);
     totRows.push(['b','Base imponible',nf.format(t.baseDes)+' '+cur().sym]);
   }
-  if(r.ivaP) totRows.push(['n',`IVA ${nfC.format(r.ivaP)}%`,nf.format(t.iva)+' '+cur().sym]);
+  if(t.ivaMix){ totRows.push(['n','IVA 10% (rehabilitación)',nf.format(t.ivaMix.iva10)+' '+cur().sym]);   /* #4 mejoras2 */
+    totRows.push(['n','IVA 21% (materiales / obra nueva)',nf.format(t.ivaMix.iva21)+' '+cur().sym]); }
+  else if(r.ivaP) totRows.push(['n',`IVA ${nfC.format(r.ivaP)}%`,nf.format(t.iva)+' '+cur().sym]);
   const rndAdj=t.total-(t.baseDes+t.iva);
   if(Math.abs(rndAdj)>0.004) totRows.push(['n','Redondeo',(rndAdj>0?'+ ':'- ')+nf.format(Math.abs(rndAdj))+' '+cur().sym]);
   const rowH=4.8, panH=8.5+(totRows.length-1)*rowH+4, bandH=11;
@@ -581,10 +646,11 @@ async function buildFacturaPDF(){
 /** Registra la factura en la cadena local (al descargarla realmente). */
 function commitFactura(){
   const f=window.__LAST_FACT; if(!f) return;
-  const cadena=LS('pe-facturas')||[];
+  const cadena=factsGet();   /* libro de facturas (IndexedDB, #5 mejoras2) */
   if(cadena.some(x=>x.num===f.num&&x.hash===f.hash)) return;
-  cadena.push({num:f.num,fecha:f.fecha,base:f.base,ivaP:f.ivaP,total:f.total,hash:f.hash});
-  LS('pe-facturas',cadena.slice(-200));
+  cadena.push({num:f.num,fecha:f.fecha,cliente:f.cliente||'',base:f.base,ivaP:f.ivaP,ivas:f.ivas||null,
+    total:f.total,hash:f.hash,cobrada:false,fCobro:null});   /* #4 mejoras2: libro de cobros */
+  factsSet(cadena.slice(-200));
   window.__LAST_FACT=null;
 }
 
@@ -600,7 +666,9 @@ function tableHTML(){
     h+=`<p><b>Subtotal presupuesto: ${nf.format(r.base)} ${cur().sym}</b></p>`; }
   h+=`<table>${t.desc?`<tr><td colspan="4">Descuento</td><td>− ${nf.format(t.desc)}</td></tr>`:''}
     <tr><td colspan="4">Base imponible</td><td>${nf.format(t.baseDes)}</td></tr>
-    ${r.ivaP?`<tr><td colspan="4">IVA ${nfC.format(r.ivaP)}%</td><td>${nf.format(t.iva)}</td></tr>`:''}
+    ${t.ivaMix?`<tr><td colspan="4">IVA 10% (rehabilitación)</td><td>${nf.format(t.ivaMix.iva10)}</td></tr>
+    <tr><td colspan="4">IVA 21% (materiales / obra nueva)</td><td>${nf.format(t.ivaMix.iva21)}</td></tr>`
+      :(r.ivaP?`<tr><td colspan="4">IVA ${nfC.format(r.ivaP)}%</td><td>${nf.format(t.iva)}</td></tr>`:'')}
     <tr><td colspan="4"><b>TOTAL</b></td><td><b>${nf.format(t.total)} ${cur().sym}</b></td></tr></table>
     <p><i>${esc(totalLetra(t.total))}</i></p>`;
   return h;
@@ -622,9 +690,11 @@ Cliente: ${esc(idv('f-cli-nombre'))} · Obra: ${esc(idv('f-cli-dir'))} ${esc(idv
 ${tableHTML()}
 <div class="firmas"><div></div><div></div></div>
 <p style="font-size:10px">La firma implica la aceptación del presupuesto, exclusiones y condiciones. Datos tratados conforme al RGPD.</p>
-<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
 </body></html>`);
   w.document.close();
+  /* #7 mejoras2: sin <script> inline (la ventana hereda la CSP del opener);
+     imprimimos desde aquí una vez pintado el documento */
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} },350);
 }
 
 /* ============================ descarga / envío ============================ */
@@ -632,12 +702,17 @@ let LAST_URL=null;
 async function pdfDownload(){ busy(true);
   try{ const doc=await buildPDF(); doc.save(fname());
     if(idv('f-doc-tipo')==='factura') commitFactura();   /* #37 */
+    else if(!window.__PDF_INTERNO) marcarEnviadoSiProcede();  /* #8 mejoras */
   }
   catch(e){ console.error(e); fallbackPrint(); }
-  finally{ busy(false); } }
+  finally{ busy(false); window.__PDF_INTERNO=false; } }
 function askTipoPDF(){ const m=$('#modal-tipo'); if(m) m.classList.add('show'); }
 function dlTipo(tipo){ const m=$('#modal-tipo'); if(m) m.classList.remove('show');
-  $('#f-doc-tipo').value=tipo; Store.commit(); pdfDownload(); }
+  window.__PDF_INTERNO=(tipo==='interno');            /* #7 mejoras */
+  setField('f-doc-tipo',(tipo==='interno')?'presupuesto':tipo);
+  if(tipo==='factura'&&!/^(FE|FA)-/.test(idv('f-num')))   /* #4 mejoras2: serie correlativa FE-año */
+    setField('f-num',nextNum('FE'));
+  Store.commit(); pdfDownload(); }
 async function pdfPreview(){ busy(true);
   try{ const doc=await buildPDF();
     if(LAST_URL) URL.revokeObjectURL(LAST_URL);
@@ -656,6 +731,7 @@ async function sharePDF(){
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:resumen,text:resumen});
       if(idv('f-doc-tipo')==='factura') commitFactura();
+      else marcarEnviadoSiProcede();                   /* #8 mejoras */
       return;
     }
   }catch(e){ /* sin soporte o cancelado: caer a mailto */ }
@@ -687,6 +763,8 @@ function buildAISchema(){
     margen_materiales_pct:num('f-margen'),
     plazo_instalacion:idv('f-plazoA'), plazo_albanileria:idv('f-plazoB'),
     iva_porcentaje:ivaChk?parseFloat(ivaChk.value):10,
+    iva_mixto:!!(document.getElementById('f-iva-mixto')&&document.getElementById('f-iva-mixto').checked),
+    iva_parte_10_pct:num('f-iva-p10'),
     descuento:{valor:num('f-desc-val'),tipo:$('#f-desc-tipo').value},
     tipo_documento:$('#f-doc-tipo').value
   };
@@ -700,25 +778,23 @@ function buildAISchema(){
   GRUPOS.forEach(g=>g.partidas.forEach(p=>{
     const f=document.querySelector(`.partida[data-id="${p.id}"] [data-free]`);
     por_unidades[p.id]={concepto:p.name,unidad:p.unit,cantidad:pQty(p.id),
-      precio_libre:(f&&(parseFloat(f.value)||0))||null};
+      precio_libre:(f&&(parseFloat(f.value)||0))||null,
+      precio_referencia:(p.refp!=null?p.refp:null)};
   }));
   const alb={precio_hora:num('f-alb-tarifa'),horas:{},
     material_auxiliar:num('f-alb-mat'),maquinas:num('f-alb-maq'),
     andamio:num('f-alb-e1'),retirada_residuos:num('f-alb-e2')};
-  $$('#alb-rows .alb-row').forEach(r=>{ const k=r.dataset.id;
-    const el=r.querySelector('[data-albh]');
-    alb.horas[k]={concepto:r.querySelector('.cname').value||k,horas:el?(parseFloat(el.value)||0):0}; });
-  const libres=$$('#libres-wrap .lib-row').map(r=>({concepto:r.querySelector('[data-lib="n"]').value,
-    precio:parseFloat(r.querySelector('[data-lib="p"]').value)||0,
-    cantidad:parseFloat(r.querySelector('[data-lib="q"]').value)||0}));
+  ALBROWS.forEach(a=>{ alb.horas[a.id]={concepto:a.name||a.id,horas:a.h||0}; });   /* #8 mejoras2: memoria */
+  const libres=LIBRES.map(L=>({grupo:L.g||null,concepto:L.n||'',precio:L.p||0,cantidad:L.q||0}));
   return {esquema:'presupuesto-electrico-ia-v1',
     datos_generales:dd, emisor:emi, cliente:cli,
     partidas_por_unidades:por_unidades,
     albanileria:alb, partidas_libres:libres};
 }
 function importAI(d){
-  const set=(id,v)=>{ const el=document.getElementById(id);
-    if(el&&v!=null&&v!=='') el.value=v; };
+  /* #8 mejoras2 (fase 2): setField escribe DOM+memoria — antes los valores
+     importados no entraban en getState() hasta que alguien tecleaba */
+  const set=(id,v)=>{ if(v!=null&&v!=='') setField(id,v); };
   const dd=d.datos_generales||d.datos_presupuesto||{};
   set('f-num',dd.numero); set('f-ver',dd.version); set('f-fecha',dd.fecha);
   setSelByText('f-tipo',dd.tipo_obra); set('f-m2',dd.superficie_m2);
@@ -747,27 +823,33 @@ function importAI(d){
   Object.entries(d.partidas_por_unidades||{}).forEach(([id,v])=>{
     if(!v||typeof v!=='object') return;
     const box=document.querySelector(`.partida[data-id="${id}"]`); if(!box) return;
-    const q=box.querySelector('[data-qty]'); if(q&&v.cantidad!=null) q.value=v.cantidad;
-    const f=box.querySelector('[data-free]'); if(f&&v.precio_libre) f.value=v.precio_libre; });
-  /* compat: esquemas antiguos con importes directos → Cant. 1 + Precio libre */
+    const q=box.querySelector('[data-qty]'); if(q&&v.cantidad!=null){ q.value=v.cantidad; fieldSync(q); }
+    const f=box.querySelector('[data-free]'); if(f&&v.precio_libre){ f.value=v.precio_libre; fieldSync(f); } });
+  /* compat: esquemas antiguos con importes directos.
+     En tubo/cable por metros (refp) un importe total no puede convertirse a metros → partida libre */
+  const compatLib=[];
   Object.entries(d.canalizaciones_importe_directo||{}).forEach(([id,v])=>{
     if(!v||typeof v!=='object'||!(parseFloat(v.importe_eur)>0)) return;
     const box=document.querySelector(`.partida[data-id="${id}"]`); if(!box) return;
-    const q=box.querySelector('[data-qty]'); if(q) q.value=1;
-    const f=box.querySelector('[data-free]'); if(f) f.value=v.importe_eur; });
+    const P=PART_BY_ID[id];
+    if(P&&P.refp!=null){ compatLib.push({n:P.name+' (importe esquema antiguo)',p:parseFloat(v.importe_eur),q:1}); return; }
+    const q=box.querySelector('[data-qty]'); if(q){ q.value=1; fieldSync(q); }
+    const f=box.querySelector('[data-free]'); if(f){ f.value=v.importe_eur; fieldSync(f); } });
   const al=d.albanileria||{};
+  /* #8 mejoras2 (fase 1): el precio/hora se aplica en ALBROWS (memoria) y se
+     repinta desde ella — antes se pisaban los inputs del DOM a mano */
   if(al.precio_hora){ set('f-alb-tarifa',al.precio_hora);
-    $$('#alb-rows [data-albp]').forEach(el=>el.value=al.precio_hora); }
+    ALBROWS.forEach(a=>{ a.p=al.precio_hora; }); }
   set('f-alb-mat',al.material_auxiliar);
   set('f-alb-maq',al.maquinas); set('f-alb-e1',al.andamio); set('f-alb-e2',al.retirada_residuos);
   if(al.horas&&Object.keys(al.horas).length){
     ALBROWS=Object.entries(al.horas).map(([id,v])=>({
-      id, name:(v&&v.concepto)||id, h:(v&&parseFloat(v.horas))||0 }));
-    renderAlb();
-    if(al.precio_hora) $$('#alb-rows [data-albp]').forEach(el=>el.value=al.precio_hora);
+      id, name:(v&&v.concepto)||id, h:(v&&parseFloat(v.horas))||0, p:al.precio_hora||28 }));
   }
-  if(Array.isArray(d.partidas_libres)&&d.partidas_libres.length){
-    LIBRES=d.partidas_libres.map(L=>({n:L.concepto||'',p:L.precio||0,q:L.cantidad||0}));
+  renderAlb();
+  if((Array.isArray(d.partidas_libres)&&d.partidas_libres.length)||compatLib.length){
+    LIBRES=(Array.isArray(d.partidas_libres)?d.partidas_libres:[])
+      .map(L=>({g:L.grupo||null,n:L.concepto||'',p:L.precio||0,q:L.cantidad||0})).concat(compatLib);
     renderLibres();
   }
   repriceChips(); calc(); Store.commit();
@@ -795,7 +877,7 @@ function validaEsquemaIA(d){
 function jsonImport(file){
   const rd=new FileReader();
   rd.onload=()=>{ try{
-      const d=JSON.parse(rd.result);
+      const d=JSON.parse(String(rd.result));
       const esIA=d.ia||d.datos_generales||d.partidas_por_unidades||d.canalizaciones_importe_directo;
       if(esIA){
         /* previsualización con validación (#15) */

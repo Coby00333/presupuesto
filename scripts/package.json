@@ -1,0 +1,17 @@
+{
+  "name": "presupuesto-electrico-pro",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Presupuestos y facturas de instalaciones eléctricas (web app estática). Tests del núcleo de cálculo con node:test + tipado tsc --noEmit (#3/#2 mejoras2).",
+  "type": "module",
+  "scripts": {
+    "check": "node check.mjs",
+    "test": "node --test ../tests/",
+    "e2e": "node ../tests/e2e/pdf.e2e.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "playwright": "^1.49.0",
+    "typescript": "^5.7.2"
+  }
+}
