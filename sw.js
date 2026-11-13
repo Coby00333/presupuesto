@@ -4,7 +4,7 @@
    completo, los datos del usuario viven en localStorage/IndexedDB). Las
    navegaciones sin copia caen en offline.html en lugar del error del navegador. */
 'use strict';
-const CACHE='presu-pro-v15';
+const CACHE='presu-pro-v16';
 const ASSETS=[
   './','./index.html','./manifest.webmanifest','./icons/icon.svg','./offline.html',
   './js/data.js','./js/pure.js','./js/calc.js','./js/pdf.js','./js/app.js',

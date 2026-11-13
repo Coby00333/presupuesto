@@ -537,7 +537,7 @@ function calc(){
   T('sv-IVA',ivaShow?money(iva):'—'); T('sv-T',money(total));
   const pct=base>0? matA/base*100:50;
   const donut=$('#donut');
-  if(donut) donut.style.background=`conic-gradient(var(--acc) 0 ${pct}%, var(--warn) ${pct}% 100%)`;
+  if(donut) donut.style.background=`conic-gradient(var(--acc) 0 ${pct}%, var(--gold) ${pct}% 100%)`;
   T('d-mat',money(matA)); T('d-mo',money(moT));
   $('#bar').style.width=Math.round(partidas/totalPartidas*100)+'%';
   $('#progress-text').textContent=`${partidas} de ${totalPartidas} partidas`;
